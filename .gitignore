@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+.venv/
+venv/
+env/
+.gradio/
+.DS_Store
+.idea/
+.vscode/
+temporary
+
