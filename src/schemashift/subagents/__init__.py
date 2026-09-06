@@ -1,0 +1,1 @@
+"""Isolated SchemaShift specialist graphs."""

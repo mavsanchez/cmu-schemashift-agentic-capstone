@@ -1,0 +1,43 @@
+{
+  "schema_version": "customer_v1",
+  "tables": [
+    {
+      "name": "customer",
+      "primary_key": ["customer_id"],
+      "columns": [
+        {"name": "customer_id", "data_type": "INTEGER", "nullable": false},
+        {"name": "full_name", "data_type": "VARCHAR", "nullable": false},
+        {"name": "customer_status", "data_type": "VARCHAR", "nullable": true},
+        {"name": "region", "data_type": "VARCHAR", "nullable": true},
+        {"name": "signup_date", "data_type": "VARCHAR", "nullable": false},
+        {"name": "credit_limit_cents", "data_type": "BIGINT", "nullable": true},
+        {"name": "segment", "data_type": "VARCHAR", "nullable": true},
+        {"name": "primary_email", "data_type": "VARCHAR", "nullable": true},
+        {"name": "customer_active", "data_type": "BOOLEAN", "nullable": false},
+        {"name": "account_state", "data_type": "VARCHAR", "nullable": false},
+        {"name": "close_date", "data_type": "VARCHAR", "nullable": true}
+      ]
+    },
+    {
+      "name": "orders",
+      "primary_key": ["order_id"],
+      "columns": [
+        {"name": "order_id", "data_type": "INTEGER", "nullable": false},
+        {"name": "customer_id", "data_type": "INTEGER", "nullable": false},
+        {"name": "order_date", "data_type": "VARCHAR", "nullable": false},
+        {"name": "total_cents", "data_type": "BIGINT", "nullable": false},
+        {"name": "state", "data_type": "VARCHAR", "nullable": false}
+      ]
+    },
+    {
+      "name": "product",
+      "primary_key": ["product_id"],
+      "columns": [
+        {"name": "product_id", "data_type": "INTEGER", "nullable": false},
+        {"name": "product_name", "data_type": "VARCHAR", "nullable": false},
+        {"name": "category", "data_type": "VARCHAR", "nullable": false},
+        {"name": "price_cents", "data_type": "BIGINT", "nullable": false}
+      ]
+    }
+  ]
+}

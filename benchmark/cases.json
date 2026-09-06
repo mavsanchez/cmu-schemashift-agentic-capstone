@@ -1,0 +1,2387 @@
+[
+  {
+    "case_id": "m01_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "orders.order_id",
+        "sales_orders.id"
+      ],
+      "expressions": [
+        "table and identifier rename"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT customer_id FROM sales_orders;",
+    "motif": "table_rename",
+    "motif_id": 1,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM orders;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: orders was renamed to sales_orders.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m01_projection.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m01_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m01_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "orders.order_id",
+        "sales_orders.id"
+      ],
+      "expressions": [
+        "table and identifier rename"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT customer_id FROM sales_orders WHERE customer_id >= 4;",
+    "motif": "table_rename",
+    "motif_id": 1,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM orders WHERE customer_id >= 4;",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: orders was renamed to sales_orders.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m01_filter.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m01_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m01_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "orders.order_id",
+        "sales_orders.id"
+      ],
+      "expressions": [
+        "table and identifier rename"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT o.customer_id\nFROM sales_orders AS o\nJOIN customers AS c ON c.id = o.customer_id\nWHERE c.account_state = 'OPEN';",
+    "motif": "table_rename",
+    "motif_id": 1,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.customer_id\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id\nWHERE c.account_state = 'OPEN';",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: orders was renamed to sales_orders.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m01_join.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m01_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m01_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "orders.order_id",
+        "sales_orders.id"
+      ],
+      "expressions": [
+        "table and identifier rename"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT customer_id, COUNT(*) AS order_count FROM sales_orders GROUP BY customer_id;",
+    "motif": "table_rename",
+    "motif_id": 1,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, COUNT(*) AS order_count FROM orders GROUP BY customer_id;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: orders was renamed to sales_orders.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m01_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m01_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m01_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "orders.order_id",
+        "sales_orders.id"
+      ],
+      "expressions": [
+        "table and identifier rename"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH recent_orders AS (\n    SELECT customer_id FROM sales_orders WHERE id >= 104\n)\nSELECT customer_id FROM recent_orders;",
+    "motif": "table_rename",
+    "motif_id": 1,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH recent_orders AS (\n    SELECT customer_id FROM orders WHERE order_id >= 104\n)\nSELECT customer_id FROM recent_orders;",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: orders was renamed to sales_orders.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m01_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m01_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m02_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_id",
+        "id",
+        "full_name",
+        "display_name"
+      ],
+      "expressions": [
+        "column aliases preserve the legacy output contract"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS customer_id, display_name AS full_name FROM customers;",
+    "motif": "column_rename",
+    "motif_id": 2,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, full_name FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer identifiers and names were renamed.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m02_projection.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m02_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m02_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_id",
+        "id",
+        "full_name",
+        "display_name"
+      ],
+      "expressions": [
+        "column aliases preserve the legacy output contract"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS customer_id, display_name AS full_name FROM customers WHERE display_name LIKE 'A%';",
+    "motif": "column_rename",
+    "motif_id": 2,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, full_name FROM customer WHERE full_name LIKE 'A%';",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer identifiers and names were renamed.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m02_filter.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m02_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m02_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_id",
+        "id",
+        "full_name",
+        "display_name"
+      ],
+      "expressions": [
+        "column aliases preserve the legacy output contract"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id, c.display_name AS full_name\nFROM customers AS c\nJOIN sales_orders AS o ON o.customer_id = c.id;",
+    "motif": "column_rename",
+    "motif_id": 2,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT c.customer_id, c.full_name\nFROM customer AS c\nJOIN orders AS o ON o.customer_id = c.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer identifiers and names were renamed.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m02_join.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m02_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m02_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_id",
+        "id",
+        "full_name",
+        "display_name"
+      ],
+      "expressions": [
+        "column aliases preserve the legacy output contract"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT display_name AS full_name, COUNT(*) AS customer_count FROM customers GROUP BY display_name;",
+    "motif": "column_rename",
+    "motif_id": 2,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT full_name, COUNT(*) AS customer_count FROM customer GROUP BY full_name;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer identifiers and names were renamed.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m02_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m02_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m02_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_id",
+        "id",
+        "full_name",
+        "display_name"
+      ],
+      "expressions": [
+        "column aliases preserve the legacy output contract"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH named_customers AS (\n    SELECT id AS customer_id, display_name AS full_name FROM customers\n)\nSELECT customer_id, full_name FROM named_customers WHERE customer_id <= 3;",
+    "motif": "column_rename",
+    "motif_id": 2,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH named_customers AS (\n    SELECT customer_id, full_name FROM customer\n)\nSELECT customer_id, full_name FROM named_customers WHERE customer_id <= 3;",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer identifiers and names were renamed.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m02_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m02_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m03_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "total_cents",
+        "total_amount"
+      ],
+      "expressions": [
+        "CAST(total_amount * 100 AS BIGINT)"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS order_id, CAST(total_amount * 100 AS BIGINT) AS total_cents FROM sales_orders;",
+    "motif": "integer_cents_to_decimal_currency",
+    "motif_id": 3,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT order_id, total_cents FROM orders;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: integer order cents became decimal currency.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m03_projection.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m03_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m03_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "total_cents",
+        "total_amount"
+      ],
+      "expressions": [
+        "CAST(total_amount * 100 AS BIGINT)"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS order_id, CAST(total_amount * 100 AS BIGINT) AS total_cents FROM sales_orders WHERE total_amount >= 100.00;",
+    "motif": "integer_cents_to_decimal_currency",
+    "motif_id": 3,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT order_id, total_cents FROM orders WHERE total_cents >= 10000;",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: integer order cents became decimal currency.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m03_filter.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m03_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m03_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "total_cents",
+        "total_amount"
+      ],
+      "expressions": [
+        "CAST(total_amount * 100 AS BIGINT)"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id, CAST(o.total_amount * 100 AS BIGINT) AS total_cents\nFROM customers AS c\nJOIN sales_orders AS o ON o.customer_id = c.id;",
+    "motif": "integer_cents_to_decimal_currency",
+    "motif_id": 3,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT c.customer_id, o.total_cents\nFROM customer AS c\nJOIN orders AS o ON o.customer_id = c.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: integer order cents became decimal currency.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m03_join.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m03_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m03_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "total_cents",
+        "total_amount"
+      ],
+      "expressions": [
+        "CAST(total_amount * 100 AS BIGINT)"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT customer_id, SUM(CAST(total_amount * 100 AS BIGINT)) AS total_cents FROM sales_orders GROUP BY customer_id;",
+    "motif": "integer_cents_to_decimal_currency",
+    "motif_id": 3,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, SUM(total_cents) AS total_cents FROM orders GROUP BY customer_id;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: integer order cents became decimal currency.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m03_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m03_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m03_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "4e59db7b14950f01210190a2e35669cc997df609ccc30455fb7be64bda05e503"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "total_cents",
+        "total_amount"
+      ],
+      "expressions": [
+        "CAST(total_amount * 100 AS BIGINT)"
+      ],
+      "tables": [
+        "orders",
+        "sales_orders"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH order_values AS (\n    SELECT id AS order_id, CAST(total_amount * 100 AS BIGINT) AS total_cents\n    FROM sales_orders\n)\nSELECT order_id, total_cents FROM order_values\nWHERE total_cents BETWEEN 2500 AND 50000;",
+    "motif": "integer_cents_to_decimal_currency",
+    "motif_id": 3,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH order_values AS (\n    SELECT order_id, total_cents FROM orders\n)\nSELECT order_id, total_cents FROM order_values\nWHERE total_cents BETWEEN 2500 AND 50000;",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: integer order cents became decimal currency.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m03_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/order_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m03_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m04_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8",
+      "edeaa749910a809cd339172af1ea6df220a83300ef8123cd48e1112c4b626c30"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "signup_date",
+        "signup_ts"
+      ],
+      "expressions": [
+        "strftime(signup_ts, '%Y-%m-%d')"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS customer_id, strftime(signup_ts, '%Y-%m-%d') AS signup_date FROM customers;",
+    "motif": "text_date_to_timestamp",
+    "motif_id": 4,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, signup_date FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: legacy date text became a timestamp.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m04_projection.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md",
+        "data/knowledge/sql_standards.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m04_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m04_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8",
+      "edeaa749910a809cd339172af1ea6df220a83300ef8123cd48e1112c4b626c30"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "signup_date",
+        "signup_ts"
+      ],
+      "expressions": [
+        "strftime(signup_ts, '%Y-%m-%d')"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS customer_id, strftime(signup_ts, '%Y-%m-%d') AS signup_date FROM customers WHERE signup_ts >= TIMESTAMP '2024-01-01';",
+    "motif": "text_date_to_timestamp",
+    "motif_id": 4,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, signup_date FROM customer WHERE signup_date >= '2024-01-01';",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: legacy date text became a timestamp.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m04_filter.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md",
+        "data/knowledge/sql_standards.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m04_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m04_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8",
+      "edeaa749910a809cd339172af1ea6df220a83300ef8123cd48e1112c4b626c30"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "signup_date",
+        "signup_ts"
+      ],
+      "expressions": [
+        "strftime(signup_ts, '%Y-%m-%d')"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id, strftime(o.ordered_at, '%Y-%m-%d') AS order_date\nFROM customers AS c\nJOIN sales_orders AS o ON o.customer_id = c.id\nWHERE o.ordered_at >= c.signup_ts;",
+    "motif": "text_date_to_timestamp",
+    "motif_id": 4,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT c.customer_id, o.order_date\nFROM customer AS c\nJOIN orders AS o ON o.customer_id = c.customer_id\nWHERE o.order_date >= c.signup_date;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: legacy date text became a timestamp.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m04_join.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md",
+        "data/knowledge/sql_standards.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m04_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m04_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8",
+      "edeaa749910a809cd339172af1ea6df220a83300ef8123cd48e1112c4b626c30"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "signup_date",
+        "signup_ts"
+      ],
+      "expressions": [
+        "strftime(signup_ts, '%Y-%m-%d')"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT account_state, strftime(MIN(signup_ts), '%Y-%m-%d') AS first_signup_date FROM customers GROUP BY account_state;",
+    "motif": "text_date_to_timestamp",
+    "motif_id": 4,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT account_state, MIN(signup_date) AS first_signup_date FROM customer GROUP BY account_state;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: legacy date text became a timestamp.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m04_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md",
+        "data/knowledge/sql_standards.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m04_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m04_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "46f96bd91b995f61f272b77f3415a14bcdb3e5b45ae06dc80618284ef0a9dee8",
+      "edeaa749910a809cd339172af1ea6df220a83300ef8123cd48e1112c4b626c30"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "signup_date",
+        "signup_ts"
+      ],
+      "expressions": [
+        "strftime(signup_ts, '%Y-%m-%d')"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH signup_days AS (\n    SELECT id AS customer_id, strftime(signup_ts, '%Y-%m-%d') AS signup_date\n    FROM customers\n)\nSELECT signup_date FROM signup_days\nWHERE signup_date BETWEEN '2024-01-01' AND '2024-12-31';",
+    "motif": "text_date_to_timestamp",
+    "motif_id": 4,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH signup_days AS (\n    SELECT customer_id, signup_date FROM customer\n)\nSELECT signup_date FROM signup_days\nWHERE signup_date BETWEEN '2024-01-01' AND '2024-12-31';",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: legacy date text became a timestamp.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m04_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/customer_migration.md",
+        "data/knowledge/sql_standards.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m04_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m05_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code",
+        "status_description"
+      ],
+      "expressions": [
+        "left join to customer_status"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id, s.status_description AS customer_status\nFROM customers AS c\nLEFT JOIN customer_status AS s ON s.status_code = c.status_code;",
+    "motif": "status_moved_to_lookup_table",
+    "motif_id": 5,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, customer_status FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: descriptive customer status moved to a lookup table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m05_projection.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m05_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m05_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code",
+        "status_description"
+      ],
+      "expressions": [
+        "left join to customer_status"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id\nFROM customers AS c\nJOIN customer_status AS s ON s.status_code = c.status_code\nWHERE s.status_description = 'Active';",
+    "motif": "status_moved_to_lookup_table",
+    "motif_id": 5,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM customer WHERE customer_status = 'Active';",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: descriptive customer status moved to a lookup table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m05_filter.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m05_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m05_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code",
+        "status_description"
+      ],
+      "expressions": [
+        "left join to customer_status"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT o.id AS order_id, s.status_description AS customer_status\nFROM sales_orders AS o\nJOIN customers AS c ON c.id = o.customer_id\nLEFT JOIN customer_status AS s ON s.status_code = c.status_code;",
+    "motif": "status_moved_to_lookup_table",
+    "motif_id": 5,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.order_id, c.customer_status\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: descriptive customer status moved to a lookup table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m05_join.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m05_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m05_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code",
+        "status_description"
+      ],
+      "expressions": [
+        "left join to customer_status"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT s.status_description AS customer_status, COUNT(*) AS customer_count\nFROM customers AS c\nLEFT JOIN customer_status AS s ON s.status_code = c.status_code\nGROUP BY s.status_description;",
+    "motif": "status_moved_to_lookup_table",
+    "motif_id": 5,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_status, COUNT(*) AS customer_count FROM customer GROUP BY customer_status;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: descriptive customer status moved to a lookup table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m05_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m05_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m05_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code",
+        "status_description"
+      ],
+      "expressions": [
+        "left join to customer_status"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH statuses AS (\n    SELECT c.id AS customer_id, s.status_description AS customer_status\n    FROM customers AS c\n    LEFT JOIN customer_status AS s ON s.status_code = c.status_code\n)\nSELECT customer_id FROM statuses WHERE customer_status = 'Pending';",
+    "motif": "status_moved_to_lookup_table",
+    "motif_id": 5,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH statuses AS (\n    SELECT customer_id, customer_status FROM customer\n)\nSELECT customer_id FROM statuses WHERE customer_status = 'Pending';",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: descriptive customer status moved to a lookup table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m05_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m05_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m06_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "region",
+        "region_id",
+        "region_name"
+      ],
+      "expressions": [
+        "left joins preserve null regions"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_profile",
+        "regions"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id, r.region_name AS region\nFROM customers AS c\nLEFT JOIN customer_profile AS p ON p.customer_id = c.id\nLEFT JOIN regions AS r ON r.region_id = p.region_id;",
+    "motif": "attribute_moved_to_another_table",
+    "motif_id": 6,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, region FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer region moved through profile and region tables.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m06_projection.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m06_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m06_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "region",
+        "region_id",
+        "region_name"
+      ],
+      "expressions": [
+        "left joins preserve null regions"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_profile",
+        "regions"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id\nFROM customers AS c\nJOIN customer_profile AS p ON p.customer_id = c.id\nJOIN regions AS r ON r.region_id = p.region_id\nWHERE r.region_name = 'West';",
+    "motif": "attribute_moved_to_another_table",
+    "motif_id": 6,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM customer WHERE region = 'West';",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer region moved through profile and region tables.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m06_filter.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m06_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m06_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "region",
+        "region_id",
+        "region_name"
+      ],
+      "expressions": [
+        "left joins preserve null regions"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_profile",
+        "regions"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT o.id AS order_id, r.region_name AS region\nFROM sales_orders AS o\nJOIN customers AS c ON c.id = o.customer_id\nLEFT JOIN customer_profile AS p ON p.customer_id = c.id\nLEFT JOIN regions AS r ON r.region_id = p.region_id;",
+    "motif": "attribute_moved_to_another_table",
+    "motif_id": 6,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.order_id, c.region\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer region moved through profile and region tables.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m06_join.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m06_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m06_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "region",
+        "region_id",
+        "region_name"
+      ],
+      "expressions": [
+        "left joins preserve null regions"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_profile",
+        "regions"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT r.region_name AS region, COUNT(*) AS customer_count\nFROM customers AS c\nLEFT JOIN customer_profile AS p ON p.customer_id = c.id\nLEFT JOIN regions AS r ON r.region_id = p.region_id\nGROUP BY r.region_name;",
+    "motif": "attribute_moved_to_another_table",
+    "motif_id": 6,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT region, COUNT(*) AS customer_count FROM customer GROUP BY region;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer region moved through profile and region tables.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m06_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m06_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m06_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "region",
+        "region_id",
+        "region_name"
+      ],
+      "expressions": [
+        "left joins preserve null regions"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_profile",
+        "regions"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH westerners AS (\n    SELECT c.id AS customer_id, r.region_name AS region\n    FROM customers AS c\n    JOIN customer_profile AS p ON p.customer_id = c.id\n    JOIN regions AS r ON r.region_id = p.region_id\n    WHERE r.region_name = 'West'\n)\nSELECT customer_id, region FROM westerners;",
+    "motif": "attribute_moved_to_another_table",
+    "motif_id": 6,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH westerners AS (\n    SELECT customer_id, region FROM customer WHERE region = 'West'\n)\nSELECT customer_id, region FROM westerners;",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer region moved through profile and region tables.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m06_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m06_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m07_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "d19584ca975b7188c8bae96b86f234d577633067ffecabd8fc8b49e1f3f71a34"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_active",
+        "account_state"
+      ],
+      "expressions": [
+        "account_state = 'OPEN'"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS customer_id, (account_state = 'OPEN') AS customer_active FROM customers;",
+    "motif": "derived_business_rule_mapping",
+    "motif_id": 7,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, customer_active FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer_active is derived from account state.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m07_projection.sql",
+      "knowledge": [
+        "data/knowledge/customer_active_rule.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m07_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m07_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "d19584ca975b7188c8bae96b86f234d577633067ffecabd8fc8b49e1f3f71a34"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_active",
+        "account_state"
+      ],
+      "expressions": [
+        "account_state = 'OPEN'"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT id AS customer_id FROM customers WHERE account_state = 'OPEN';",
+    "motif": "derived_business_rule_mapping",
+    "motif_id": 7,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM customer WHERE customer_active;",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer_active is derived from account state.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m07_filter.sql",
+      "knowledge": [
+        "data/knowledge/customer_active_rule.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m07_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m07_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "d19584ca975b7188c8bae96b86f234d577633067ffecabd8fc8b49e1f3f71a34"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_active",
+        "account_state"
+      ],
+      "expressions": [
+        "account_state = 'OPEN'"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT o.id AS order_id, (c.account_state = 'OPEN') AS customer_active\nFROM sales_orders AS o\nJOIN customers AS c ON c.id = o.customer_id;",
+    "motif": "derived_business_rule_mapping",
+    "motif_id": 7,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.order_id, c.customer_active\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer_active is derived from account state.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m07_join.sql",
+      "knowledge": [
+        "data/knowledge/customer_active_rule.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m07_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m07_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "d19584ca975b7188c8bae96b86f234d577633067ffecabd8fc8b49e1f3f71a34"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_active",
+        "account_state"
+      ],
+      "expressions": [
+        "account_state = 'OPEN'"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT (account_state = 'OPEN') AS customer_active, COUNT(*) AS customer_count\nFROM customers\nGROUP BY (account_state = 'OPEN');",
+    "motif": "derived_business_rule_mapping",
+    "motif_id": 7,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_active, COUNT(*) AS customer_count FROM customer GROUP BY customer_active;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer_active is derived from account state.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m07_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/customer_active_rule.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m07_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m07_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "d19584ca975b7188c8bae96b86f234d577633067ffecabd8fc8b49e1f3f71a34"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "customer_active",
+        "account_state"
+      ],
+      "expressions": [
+        "account_state = 'OPEN'"
+      ],
+      "tables": [
+        "customer",
+        "customers"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH flags AS (\n    SELECT id AS customer_id, (account_state = 'OPEN') AS customer_active\n    FROM customers\n)\nSELECT customer_id FROM flags WHERE customer_active = FALSE;",
+    "motif": "derived_business_rule_mapping",
+    "motif_id": 7,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH flags AS (\n    SELECT customer_id, customer_active FROM customer\n)\nSELECT customer_id FROM flags WHERE customer_active = FALSE;",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: customer_active is derived from account state.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m07_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/customer_active_rule.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m07_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m08_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "871d05915c2e182e3c96613dd9d688658832ef713ca31e441e52e62b28fae2bb"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "primary_email",
+        "contact_type",
+        "is_primary",
+        "contact_value"
+      ],
+      "expressions": [
+        "cardinality-safe filtered left join"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_contacts"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id, e.contact_value AS primary_email\nFROM customers AS c\nLEFT JOIN customer_contacts AS e\n  ON e.customer_id = c.id AND e.contact_type = 'email' AND e.is_primary;",
+    "motif": "one_to_many_cardinality_hazard",
+    "motif_id": 8,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, primary_email FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: primary email moved into a one-to-many contact table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m08_projection.sql",
+      "knowledge": [
+        "data/knowledge/contact_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m08_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m08_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "871d05915c2e182e3c96613dd9d688658832ef713ca31e441e52e62b28fae2bb"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "primary_email",
+        "contact_type",
+        "is_primary",
+        "contact_value"
+      ],
+      "expressions": [
+        "cardinality-safe filtered left join"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_contacts"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT c.id AS customer_id\nFROM customers AS c\nJOIN customer_contacts AS e\n  ON e.customer_id = c.id AND e.contact_type = 'email' AND e.is_primary\nWHERE e.contact_value IS NOT NULL;",
+    "motif": "one_to_many_cardinality_hazard",
+    "motif_id": 8,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM customer WHERE primary_email IS NOT NULL;",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: primary email moved into a one-to-many contact table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m08_filter.sql",
+      "knowledge": [
+        "data/knowledge/contact_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m08_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m08_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "871d05915c2e182e3c96613dd9d688658832ef713ca31e441e52e62b28fae2bb"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "primary_email",
+        "contact_type",
+        "is_primary",
+        "contact_value"
+      ],
+      "expressions": [
+        "cardinality-safe filtered left join"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_contacts"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT o.id AS order_id, e.contact_value AS primary_email\nFROM sales_orders AS o\nJOIN customers AS c ON c.id = o.customer_id\nLEFT JOIN customer_contacts AS e\n  ON e.customer_id = c.id AND e.contact_type = 'email' AND e.is_primary;",
+    "motif": "one_to_many_cardinality_hazard",
+    "motif_id": 8,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.order_id, c.primary_email\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: primary email moved into a one-to-many contact table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m08_join.sql",
+      "knowledge": [
+        "data/knowledge/contact_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m08_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m08_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "871d05915c2e182e3c96613dd9d688658832ef713ca31e441e52e62b28fae2bb"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "primary_email",
+        "contact_type",
+        "is_primary",
+        "contact_value"
+      ],
+      "expressions": [
+        "cardinality-safe filtered left join"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_contacts"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT COUNT(e.contact_value) AS email_count\nFROM customers AS c\nLEFT JOIN customer_contacts AS e\n  ON e.customer_id = c.id AND e.contact_type = 'email' AND e.is_primary;",
+    "motif": "one_to_many_cardinality_hazard",
+    "motif_id": 8,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT COUNT(primary_email) AS email_count FROM customer;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: primary email moved into a one-to-many contact table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m08_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/contact_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m08_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m08_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "871d05915c2e182e3c96613dd9d688658832ef713ca31e441e52e62b28fae2bb"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "primary_email",
+        "contact_type",
+        "is_primary",
+        "contact_value"
+      ],
+      "expressions": [
+        "cardinality-safe filtered left join"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_contacts"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH emails AS (\n    SELECT c.id AS customer_id, e.contact_value AS primary_email\n    FROM customers AS c\n    LEFT JOIN customer_contacts AS e\n      ON e.customer_id = c.id AND e.contact_type = 'email' AND e.is_primary\n)\nSELECT customer_id, primary_email\nFROM emails WHERE primary_email LIKE '%@example.test';",
+    "motif": "one_to_many_cardinality_hazard",
+    "motif_id": 8,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH emails AS (\n    SELECT customer_id, primary_email FROM customer\n)\nSELECT customer_id, primary_email\nFROM emails WHERE primary_email LIKE '%@example.test';",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: primary email moved into a one-to-many contact table.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m08_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/contact_migration.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m08_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m09_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32",
+      "6fb12472c0837ad6163dfe51204759ef25126de230ea746c97c6b0ceba757a1c"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "segment",
+        "segment_name"
+      ],
+      "expressions": [
+        "NULLIF(segment_name, 'UNKNOWN')"
+      ],
+      "tables": [
+        "customer",
+        "customer_profile"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT customer_id, NULLIF(segment_name, 'UNKNOWN') AS segment FROM customer_profile;",
+    "motif": "null_default_semantic_change",
+    "motif_id": 9,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, segment FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: a nullable segment became the UNKNOWN sentinel.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m09_projection.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md",
+        "data/knowledge/profile_defaults.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m09_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m09_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32",
+      "6fb12472c0837ad6163dfe51204759ef25126de230ea746c97c6b0ceba757a1c"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "segment",
+        "segment_name"
+      ],
+      "expressions": [
+        "NULLIF(segment_name, 'UNKNOWN')"
+      ],
+      "tables": [
+        "customer",
+        "customer_profile"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT customer_id FROM customer_profile WHERE segment_name = 'UNKNOWN';",
+    "motif": "null_default_semantic_change",
+    "motif_id": 9,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM customer WHERE segment IS NULL;",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: a nullable segment became the UNKNOWN sentinel.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m09_filter.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md",
+        "data/knowledge/profile_defaults.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m09_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m09_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32",
+      "6fb12472c0837ad6163dfe51204759ef25126de230ea746c97c6b0ceba757a1c"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "segment",
+        "segment_name"
+      ],
+      "expressions": [
+        "NULLIF(segment_name, 'UNKNOWN')"
+      ],
+      "tables": [
+        "customer",
+        "customer_profile"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT o.id AS order_id, NULLIF(p.segment_name, 'UNKNOWN') AS segment\nFROM sales_orders AS o\nJOIN customer_profile AS p ON p.customer_id = o.customer_id;",
+    "motif": "null_default_semantic_change",
+    "motif_id": 9,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.order_id, c.segment\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id;",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: a nullable segment became the UNKNOWN sentinel.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m09_join.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md",
+        "data/knowledge/profile_defaults.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m09_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m09_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32",
+      "6fb12472c0837ad6163dfe51204759ef25126de230ea746c97c6b0ceba757a1c"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "segment",
+        "segment_name"
+      ],
+      "expressions": [
+        "NULLIF(segment_name, 'UNKNOWN')"
+      ],
+      "tables": [
+        "customer",
+        "customer_profile"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "SELECT NULLIF(segment_name, 'UNKNOWN') AS segment, COUNT(*) AS customer_count\nFROM customer_profile\nGROUP BY NULLIF(segment_name, 'UNKNOWN');",
+    "motif": "null_default_semantic_change",
+    "motif_id": 9,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT segment, COUNT(*) AS customer_count FROM customer GROUP BY segment;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: a nullable segment became the UNKNOWN sentinel.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m09_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md",
+        "data/knowledge/profile_defaults.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m09_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m09_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "a992ed1241f9a14988f5cbe0946626b56136bcd0d172a903069d6f54199eaf32",
+      "6fb12472c0837ad6163dfe51204759ef25126de230ea746c97c6b0ceba757a1c"
+    ],
+    "expected_human_review": false,
+    "expected_impact": {
+      "columns": [
+        "segment",
+        "segment_name"
+      ],
+      "expressions": [
+        "NULLIF(segment_name, 'UNKNOWN')"
+      ],
+      "tables": [
+        "customer",
+        "customer_profile"
+      ]
+    },
+    "expected_verdict": "pass",
+    "gold_sql": "WITH segments AS (\n    SELECT customer_id, NULLIF(segment_name, 'UNKNOWN') AS segment\n    FROM customer_profile\n)\nSELECT customer_id, segment FROM segments\nWHERE segment IS NULL OR segment = 'premium';",
+    "motif": "null_default_semantic_change",
+    "motif_id": 9,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH segments AS (\n    SELECT customer_id, segment FROM customer\n)\nSELECT customer_id, segment FROM segments\nWHERE segment IS NULL OR segment = 'premium';",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: a nullable segment became the UNKNOWN sentinel.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m09_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/customer_profile_migration.md",
+        "data/knowledge/profile_defaults.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m09_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  },
+  {
+    "case_id": "m10_projection",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f",
+      "fc8b78e2d59a76368b2be35d2db6cf8ccb4c3e13402e2dbe17bc9710df26e453"
+    ],
+    "expected_human_review": true,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code"
+      ],
+      "expressions": [
+        "conflicting Pending-to-code mappings"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "human_review",
+    "gold_sql": "SELECT c.id AS customer_id, s.status_description AS customer_status\nFROM customers AS c\nLEFT JOIN customer_status AS s ON s.status_code = c.status_code;",
+    "motif": "conflicting_or_insufficient_evidence",
+    "motif_id": 10,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id, customer_status FROM customer;",
+    "prompt": "Migrate this projection query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: status evidence conflicts and requires human review.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m10_projection.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md",
+        "data/knowledge/status_conflict.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m10_projection.sql"
+    },
+    "sql_form": "projection"
+  },
+  {
+    "case_id": "m10_filter",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f",
+      "fc8b78e2d59a76368b2be35d2db6cf8ccb4c3e13402e2dbe17bc9710df26e453"
+    ],
+    "expected_human_review": true,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code"
+      ],
+      "expressions": [
+        "conflicting Pending-to-code mappings"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "human_review",
+    "gold_sql": "SELECT c.id AS customer_id\nFROM customers AS c\nJOIN customer_status AS s ON s.status_code = c.status_code\nWHERE s.status_description IN ('Pending', 'Inactive');",
+    "motif": "conflicting_or_insufficient_evidence",
+    "motif_id": 10,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_id FROM customer WHERE customer_status IN ('Pending', 'Inactive');",
+    "prompt": "Migrate this filter query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: status evidence conflicts and requires human review.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m10_filter.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md",
+        "data/knowledge/status_conflict.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m10_filter.sql"
+    },
+    "sql_form": "filter"
+  },
+  {
+    "case_id": "m10_join",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f",
+      "fc8b78e2d59a76368b2be35d2db6cf8ccb4c3e13402e2dbe17bc9710df26e453"
+    ],
+    "expected_human_review": true,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code"
+      ],
+      "expressions": [
+        "conflicting Pending-to-code mappings"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "human_review",
+    "gold_sql": "SELECT o.id AS order_id, s.status_description AS customer_status\nFROM sales_orders AS o\nJOIN customers AS c ON c.id = o.customer_id\nJOIN customer_status AS s ON s.status_code = c.status_code\nWHERE s.status_description = 'Pending';",
+    "motif": "conflicting_or_insufficient_evidence",
+    "motif_id": 10,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT o.order_id, c.customer_status\nFROM orders AS o\nJOIN customer AS c ON c.customer_id = o.customer_id\nWHERE c.customer_status = 'Pending';",
+    "prompt": "Migrate this join query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: status evidence conflicts and requires human review.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m10_join.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md",
+        "data/knowledge/status_conflict.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m10_join.sql"
+    },
+    "sql_form": "join"
+  },
+  {
+    "case_id": "m10_aggregate",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f",
+      "fc8b78e2d59a76368b2be35d2db6cf8ccb4c3e13402e2dbe17bc9710df26e453"
+    ],
+    "expected_human_review": true,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code"
+      ],
+      "expressions": [
+        "conflicting Pending-to-code mappings"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "human_review",
+    "gold_sql": "SELECT s.status_description AS customer_status, COUNT(*) AS customer_count\nFROM customers AS c\nLEFT JOIN customer_status AS s ON s.status_code = c.status_code\nGROUP BY s.status_description;",
+    "motif": "conflicting_or_insufficient_evidence",
+    "motif_id": 10,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "SELECT customer_status, COUNT(*) AS customer_count FROM customer GROUP BY customer_status;",
+    "prompt": "Migrate this aggregate query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: status evidence conflicts and requires human review.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m10_aggregate.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md",
+        "data/knowledge/status_conflict.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m10_aggregate.sql"
+    },
+    "sql_form": "aggregate"
+  },
+  {
+    "case_id": "m10_cte_subquery",
+    "comparison_policy": {
+      "absolute_tolerance": 1e-06,
+      "ordered": false,
+      "relative_tolerance": 1e-06,
+      "sample_limit": 20
+    },
+    "expected_equivalent": true,
+    "expected_evidence_ids": [
+      "5d53bccc764a2054d82b89f437ba01ffeffc3e15b8882b5edaa096a167c96e7f",
+      "fc8b78e2d59a76368b2be35d2db6cf8ccb4c3e13402e2dbe17bc9710df26e453"
+    ],
+    "expected_human_review": true,
+    "expected_impact": {
+      "columns": [
+        "customer_status",
+        "status_code"
+      ],
+      "expressions": [
+        "conflicting Pending-to-code mappings"
+      ],
+      "tables": [
+        "customer",
+        "customers",
+        "customer_status"
+      ]
+    },
+    "expected_verdict": "human_review",
+    "gold_sql": "WITH pending_customers AS (\n    SELECT c.id AS customer_id\n    FROM customers AS c\n    JOIN customer_status AS s ON s.status_code = c.status_code\n    WHERE s.status_description = 'Pending'\n)\nSELECT customer_id FROM pending_customers;",
+    "motif": "conflicting_or_insufficient_evidence",
+    "motif_id": 10,
+    "new_database_id": "customer_v2",
+    "old_database_id": "customer_v1",
+    "original_sql": "WITH pending_customers AS (\n    SELECT customer_id FROM customer WHERE customer_status = 'Pending'\n)\nSELECT customer_id FROM pending_customers;",
+    "prompt": "Migrate this cte/subquery query for the customer_v2 schema. Preserve column names, types, nulls, row multiplicity, and business meaning. Migration focus: status evidence conflicts and requires human review.",
+    "seed": 20260905,
+    "source_paths": {
+      "gold_sql": "benchmark/gold/m10_cte_subquery.sql",
+      "knowledge": [
+        "data/knowledge/status_migration.md",
+        "data/knowledge/status_conflict.md"
+      ],
+      "new_schema": "data/schemas/customer_v2.sql",
+      "old_schema": "data/schemas/customer_v1.sql",
+      "source_sql": "benchmark/sql/m10_cte_subquery.sql"
+    },
+    "sql_form": "cte_subquery"
+  }
+]

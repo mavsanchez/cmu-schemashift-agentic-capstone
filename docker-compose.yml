@@ -1,0 +1,39 @@
+name: schemashift
+
+services:
+  postgres:
+    image: postgres:17.10
+    environment:
+      POSTGRES_DB: schemashift
+      POSTGRES_USER: schemashift
+      POSTGRES_PASSWORD: schemashift
+    ports:
+      - "${SCHEMASHIFT_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schemashift -d schemashift"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis/redis-stack-server:7.4.0-v8
+    command: ["redis-stack-server", "--appendonly", "yes"]
+    ports:
+      - "${SCHEMASHIFT_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,52 @@
+{
+  "schema_version": "customer_v2",
+  "tables": [
+    {"name": "customers", "primary_key": ["id"], "columns": [
+      {"name": "id", "data_type": "INTEGER", "nullable": false},
+      {"name": "display_name", "data_type": "VARCHAR", "nullable": false},
+      {"name": "status_code", "data_type": "VARCHAR", "nullable": true},
+      {"name": "signup_ts", "data_type": "TIMESTAMP", "nullable": false},
+      {"name": "credit_limit", "data_type": "DECIMAL(18,2)", "nullable": true},
+      {"name": "account_state", "data_type": "VARCHAR", "nullable": false},
+      {"name": "closed_at", "data_type": "TIMESTAMP", "nullable": true}
+    ]},
+    {"name": "customer_status", "primary_key": ["status_code"], "columns": [
+      {"name": "status_code", "data_type": "VARCHAR", "nullable": false},
+      {"name": "status_description", "data_type": "VARCHAR", "nullable": false},
+      {"name": "is_active", "data_type": "BOOLEAN", "nullable": false}
+    ]},
+    {"name": "customer_profile", "primary_key": ["customer_id"], "columns": [
+      {"name": "customer_id", "data_type": "INTEGER", "nullable": false},
+      {"name": "region_id", "data_type": "INTEGER", "nullable": true},
+      {"name": "segment_name", "data_type": "VARCHAR", "nullable": false}
+    ]},
+    {"name": "regions", "primary_key": ["region_id"], "columns": [
+      {"name": "region_id", "data_type": "INTEGER", "nullable": false},
+      {"name": "region_name", "data_type": "VARCHAR", "nullable": false}
+    ]},
+    {"name": "customer_contacts", "primary_key": ["contact_id"], "columns": [
+      {"name": "contact_id", "data_type": "INTEGER", "nullable": false},
+      {"name": "customer_id", "data_type": "INTEGER", "nullable": false},
+      {"name": "contact_type", "data_type": "VARCHAR", "nullable": false},
+      {"name": "contact_value", "data_type": "VARCHAR", "nullable": false},
+      {"name": "is_primary", "data_type": "BOOLEAN", "nullable": false}
+    ]},
+    {"name": "sales_orders", "primary_key": ["id"], "columns": [
+      {"name": "id", "data_type": "INTEGER", "nullable": false},
+      {"name": "customer_id", "data_type": "INTEGER", "nullable": false},
+      {"name": "ordered_at", "data_type": "TIMESTAMP", "nullable": false},
+      {"name": "total_amount", "data_type": "DECIMAL(18,2)", "nullable": false},
+      {"name": "order_state_code", "data_type": "VARCHAR", "nullable": false}
+    ]},
+    {"name": "order_states", "primary_key": ["state_code"], "columns": [
+      {"name": "state_code", "data_type": "VARCHAR", "nullable": false},
+      {"name": "state_description", "data_type": "VARCHAR", "nullable": false}
+    ]},
+    {"name": "catalog_products", "primary_key": ["id"], "columns": [
+      {"name": "id", "data_type": "INTEGER", "nullable": false},
+      {"name": "name", "data_type": "VARCHAR", "nullable": false},
+      {"name": "category_name", "data_type": "VARCHAR", "nullable": false},
+      {"name": "unit_price", "data_type": "DECIMAL(18,2)", "nullable": false}
+    ]}
+  ]
+}

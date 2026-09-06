@@ -1,0 +1,72 @@
+"""Redis-backed checkpoint and durable semantic memory support."""
+
+from .checkpointer import (
+    CheckpointerSetup,
+    CheckpointerUnavailableError,
+    create_checkpointer,
+    setup_checkpointer,
+    setup_checkpointer_from_settings,
+)
+from .policy import MemoryWritePolicy, evaluate_memory_candidate, should_store_memory
+from .redis_client import (
+    DEFAULT_KNOWLEDGE_INDEX,
+    DEFAULT_KNOWLEDGE_PREFIX,
+    DEFAULT_MEMORY_INDEX,
+    DEFAULT_MEMORY_PREFIX,
+    VECTOR_DATA_TYPE,
+    VECTOR_DIMENSIONS,
+    VECTOR_DISTANCE_METRIC,
+    RedisIndexError,
+    RedisUnavailableError,
+    bytes_to_vector,
+    create_redis_client,
+    ensure_knowledge_index,
+    ensure_memory_index,
+    vector_to_bytes,
+)
+from .schemas import (
+    MemoryCandidate,
+    MemoryPolicyDecision,
+    MemoryProvenance,
+    MemoryRecord,
+    MemorySearchResult,
+    MemorySourceType,
+    MemoryType,
+    MemoryWriteResult,
+)
+from .semantic_memory import MemoryPolicyRejected, SemanticMemoryStore
+
+__all__ = [
+    "CheckpointerSetup",
+    "CheckpointerUnavailableError",
+    "DEFAULT_KNOWLEDGE_INDEX",
+    "DEFAULT_KNOWLEDGE_PREFIX",
+    "DEFAULT_MEMORY_INDEX",
+    "DEFAULT_MEMORY_PREFIX",
+    "MemoryCandidate",
+    "MemoryPolicyDecision",
+    "MemoryPolicyRejected",
+    "MemoryProvenance",
+    "MemoryRecord",
+    "MemorySearchResult",
+    "MemorySourceType",
+    "MemoryType",
+    "MemoryWritePolicy",
+    "MemoryWriteResult",
+    "RedisIndexError",
+    "RedisUnavailableError",
+    "SemanticMemoryStore",
+    "VECTOR_DATA_TYPE",
+    "VECTOR_DIMENSIONS",
+    "VECTOR_DISTANCE_METRIC",
+    "bytes_to_vector",
+    "create_checkpointer",
+    "create_redis_client",
+    "ensure_knowledge_index",
+    "ensure_memory_index",
+    "evaluate_memory_candidate",
+    "setup_checkpointer",
+    "setup_checkpointer_from_settings",
+    "should_store_memory",
+    "vector_to_bytes",
+]

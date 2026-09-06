@@ -8,4 +8,16 @@ env/
 .idea/
 .vscode/
 temporary
+.env
+data/generated/*
+!data/generated/.gitkeep
+benchmark/results/*
+!benchmark/results/.gitkeep
+!benchmark/results/latest.json
+!benchmark/results/latest.md
+.pytest_cache/
+.pytest-tmp*/
+.ruff_cache/
+.coverage
+htmlcov/
 
