@@ -19,6 +19,7 @@ from schemashift.services import (
 
 from .activity import render_activity
 from .decisions import render_decision
+from .inspectors import PANEL_NAMES, InspectorPanels
 from .pipeline import apply_component_event, empty_pipeline, render_pipeline
 from .styles import CSS, LAYOUT_JS, hero_html
 
@@ -136,6 +137,7 @@ def _fresh_state(
         "session_id": str(session_id),
         "statuses": empty_pipeline(),
         "events": [],
+        "trace": [],
         "review": None,
         "busy": False,
         "resuming_review_id": None,
@@ -162,6 +164,14 @@ def _restore_state(
         if event.get("type") == "component_status":
             statuses = apply_component_event(statuses, event)
     state["events"] = events
+    state["trace"] = list(events)
+    latest_run = next(iter(history.get("runs", [])), {})
+    state["run_status"] = latest_run.get("status") or "Ready"
+    run_id = latest_run.get("run_id") or next(
+        (event.get("run_id") for event in reversed(events) if event.get("run_id")), None
+    )
+    if run_id:
+        state["run_id"] = str(run_id)
     state["statuses"] = statuses
     pending = history.get("pending_review")
     open_runs = [
@@ -268,9 +278,13 @@ def _run_view(
     runtime: ApplicationRuntime,
     state: dict[str, Any],
     chat: list[dict[str, str]],
+    inspectors: InspectorPanels,
 ) -> tuple[Any, ...]:
     approve, reject = _review_updates(state)
     artifacts = _artifact_choices(runtime, str(state.get("conversation_id", "")))
+    if state.get("inspector_dirty", True) or "inspector_views" not in state:
+        state["inspector_views"] = inspectors.render(state, chat)
+        state["inspector_dirty"] = False
     return (
         state,
         chat,
@@ -283,6 +297,7 @@ def _run_view(
         gr.update(choices=artifacts, value=artifacts[0][1] if artifacts else None),
         artifacts[0][1] if artifacts else None,
         _review_feedback_update(state),
+        *state["inspector_views"],
     )
 
 
@@ -293,6 +308,10 @@ def _apply_stream_event(
 ) -> None:
     event = dict(envelope.event)
     event_type = str(event.get("type", ""))
+    if event_type != "assistant_token":
+        state["inspector_dirty"] = True
+        state.setdefault("trace", []).append(event)
+        state["trace"] = state["trace"][-200:]
     for key in ("conversation_id", "session_id", "run_id"):
         if event.get(key):
             state[key] = str(event[key])
@@ -311,6 +330,7 @@ def _apply_stream_event(
             chat.append({"role": "assistant", "content": ""})
         chat[-1]["content"] += str(event.get("text", ""))
     elif event_type == "run_output":
+        state["run_status"] = event.get("status") or "completed"
         answer = str(event.get("answer") or "")
         if answer:
             if not chat or chat[-1].get("role") != "assistant":
@@ -330,6 +350,8 @@ def _mark_ui_failure(state: dict[str, Any], *, label: str, detail: str) -> None:
         if status == "active":
             statuses[name] = "error"
     state["statuses"] = statuses
+    state["inspector_dirty"] = True
+    state["run_status"] = "failed"
     already_delivered = any(
         event.get("type") == "activity" and event.get("label") == label
         for event in state.get("events", [])
@@ -348,12 +370,15 @@ def _mark_ui_failure(state: dict[str, Any], *, label: str, detail: str) -> None:
                 "run_id": correlation[2],
             }
         )
+        state.setdefault("trace", []).append(state["events"][-1])
+        state["trace"] = state["trace"][-200:]
 
 
 def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
     """Build the Blocks UI; browser state is isolated in ``gr.State``."""
 
     application = runtime or create_application_runtime()
+    inspectors = InspectorPanels(application)
 
     def initialize():
         conversation_id, session_id = application.migrations.create_conversation("New migration")
@@ -375,6 +400,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             gr.update(choices=[], value=None),
             None,
             _review_feedback_update(state),
+            *inspectors.render(state, []),
         )
 
     def new_conversation():
@@ -404,6 +430,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             gr.update(choices=artifacts, value=artifacts[0][1] if artifacts else None),
             artifacts[0][1] if artifacts else None,
             _review_feedback_update(state),
+            *inspectors.render(state, chat),
         )
 
     def refresh_conversations(state: Mapping[str, Any]):
@@ -521,7 +548,9 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         chat.append({"role": "user", "content": prompt})
         state["busy"] = True
         state["original_sql"] = original_sql
-        yield _run_view(application, state, chat)
+        state.pop("run_id", None)
+        state["inspector_dirty"] = True
+        yield _run_view(application, state, chat, inspectors)
         request = MigrationRequest(
             request=prompt,
             original_sql=original_sql,
@@ -541,7 +570,10 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 request,
             ):
                 _apply_stream_event(state, chat, envelope)
-                yield _run_view(application, state, chat)
+                yield _run_view(application, state, chat, inspectors)
+            # The final custom event precedes the last checkpoint commit.
+            state["inspector_dirty"] = True
+            yield _run_view(application, state, chat, inspectors)
         except Exception as exc:
             state["busy"] = False
             _mark_ui_failure(state, label="Run failed", detail=str(exc))
@@ -551,7 +583,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                     "content": f"SchemaShift could not complete this run: {exc}",
                 }
             )
-            yield _run_view(application, state, chat)
+            yield _run_view(application, state, chat, inspectors)
 
     def review_decision(
         choice: str,
@@ -565,6 +597,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             raise gr.Error("There is no pending Human Decision.")
         state["busy"] = True
         state["resuming_review_id"] = str(review["review_id"])
+        state["inspector_dirty"] = True
         chat.append(
             {
                 "role": "user",
@@ -572,7 +605,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 + (f": {feedback.strip()}" if feedback.strip() else "."),
             }
         )
-        yield _run_view(application, state, chat)
+        yield _run_view(application, state, chat, inspectors)
         try:
             for envelope in application.migrations.resume_run(
                 UUID(state["conversation_id"]),
@@ -582,7 +615,9 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 reviewer_feedback=feedback,
             ):
                 _apply_stream_event(state, chat, envelope)
-                yield _run_view(application, state, chat)
+                yield _run_view(application, state, chat, inspectors)
+            state["inspector_dirty"] = True
+            yield _run_view(application, state, chat, inspectors)
         except Exception as exc:
             state["busy"] = False
             state["resuming_review_id"] = None
@@ -594,7 +629,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             ):
                 chat.pop()
             _mark_ui_failure(state, label="Review resume failed", detail=str(exc))
-            yield _run_view(application, state, chat)
+            yield _run_view(application, state, chat, inspectors)
 
     def approve(feedback: str, state: dict[str, Any], chat: Any):
         yield from review_decision("approve", feedback, state, chat)
@@ -613,6 +648,11 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         if resolved not in {str(Path(item).resolve()) for item in allowed}:
             raise gr.Error("That artifact is not registered to this conversation.")
         return resolved
+
+    def refresh_inspectors(state: Mapping[str, Any], chat: Any, event: gr.SelectData):
+        if not event.selected:
+            return (gr.skip(),) * len(PANEL_NAMES)
+        return inspectors.render(state, list(chat or []))
 
     with gr.Blocks(analytics_enabled=False, title="SchemaShift", fill_width=True) as demo:
         demo.load(fn=None, js=LAYOUT_JS)
@@ -718,6 +758,22 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                     interactive=False,
                     elem_id="artifact_download",
                 )
+            inspector_outputs = []
+            inspector_tabs = []
+            for name, initial in zip(PANEL_NAMES, inspectors.render({}, []), strict=True):
+                with gr.Tab(name) as inspector_tab:
+                    panel = gr.HTML(initial, elem_id=f"{name.lower()}_inspector")
+                inspector_outputs.append(panel)
+                inspector_tabs.append(inspector_tab)
+            for inspector_tab in inspector_tabs:
+                # Selection also refreshes confirmed uploads and externally resumed runs.
+                inspector_tab.select(
+                    refresh_inspectors,
+                    inputs=[browser_state, chatbot],
+                    outputs=inspector_outputs,
+                    api_name=False,
+                    show_progress="hidden",
+                )
         initialization_outputs = [
             browser_state,
             conversation,
@@ -733,6 +789,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             artifact_select,
             artifact_download,
             reviewer_feedback,
+            *inspector_outputs,
         ]
         run_outputs = [
             browser_state,
@@ -746,6 +803,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             artifact_select,
             artifact_download,
             reviewer_feedback,
+            *inspector_outputs,
         ]
         demo.load(initialize, outputs=initialization_outputs, api_name="initialize")
         new_button.click(

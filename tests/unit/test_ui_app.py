@@ -10,7 +10,8 @@ import gradio as gr
 import pytest
 
 from schemashift.domain import SourceRole
-from schemashift.ui.app import _conversation_choices, build_app
+from schemashift.ui.app import _apply_stream_event, _conversation_choices, build_app
+from schemashift.ui.inspectors import PANEL_NAMES, InspectorPanels
 from schemashift.ui.pipeline import empty_pipeline
 
 
@@ -252,6 +253,9 @@ class _Gateway:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
+    def discover_tools(self) -> tuple[str, ...]:
+        return ("parse_sql", "compare_results")
+
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         self.calls.append((name, arguments))
         return {
@@ -361,6 +365,10 @@ def test_blocks_configuration_has_required_controls_and_named_apis(
 
     assert config["title"] == "SchemaShift"
     assert config["analytics_enabled"] is False
+    tabs = [item["props"]["label"] for item in config["components"] if item["type"] == "tabitem"]
+    assert tabs == ["Chat", "Human Decision", "Add Files", "View Migrated Files", *PANEL_NAMES]
+    for name in PANEL_NAMES:
+        assert f"{name.lower()}_inspector" in components
     assert expected_ids <= components.keys()
     assert {
         "initialize",
@@ -430,9 +438,7 @@ def test_load_conversation_opens_new_session_and_restores_durable_state(
 
 def test_conversation_picker_hides_empty_drafts_and_benchmarks_but_keeps_real_work() -> None:
     current, abandoned, uploaded, waiting, completed, benchmark = [uuid4() for _ in range(6)]
-    sources = {
-        uploaded: [SimpleNamespace(role=SourceRole.SOURCE_SQL, original_name="orders.sql")]
-    }
+    sources = {uploaded: [SimpleNamespace(role=SourceRole.SOURCE_SQL, original_name="orders.sql")]}
     runs = {
         waiting: [SimpleNamespace(status="waiting_human")],
         completed: [SimpleNamespace(status="completed")],
@@ -832,3 +838,125 @@ def test_artifact_download_allows_only_files_registered_to_current_conversation(
             fake_application._artifact.local_path,
             {"conversation_id": str(uuid4())},
         )
+
+
+def test_inspectors_show_scoped_checkpoint_memory_and_subagent_records(
+    fake_application: Any,
+) -> None:
+    state = _ready_state(fake_application)
+    state["run_id"] = str(uuid4())
+    values = {
+        **state,
+        "status": "validated",
+        "memories": [{"memory": {"text": "Preserve repeated customer IDs", "memory_type": "rule"}}],
+        "proposal": {"candidate_sql": "SELECT customer_id FROM orders"},
+        "validation": {"verdict": "pass"},
+    }
+
+    def get_state(config):
+        assert config["configurable"]["thread_id"] == state["conversation_id"]
+        return SimpleNamespace(values=values)
+
+    def list_messages(conversation_id, *, run_id, limit, ascending):
+        assert str(conversation_id) == state["conversation_id"]
+        assert str(run_id) == state["run_id"]
+        assert limit == 100 and ascending is False
+        return [
+            {
+                "actor_type": "subagent",
+                "actor_name": "Validation Subagent",
+                "role": "subagent_result",
+                "content": "<script>not HTML</script>",
+            },
+            {
+                "actor_type": "tool",
+                "tool_name": "parse_sql",
+                "role": "tool_call",
+                "content": "SELECT customer_id",
+                "tool_call_id": "call-17",
+            },
+        ]
+
+    fake_application.graph = SimpleNamespace(get_state=get_state)
+    fake_application.repository.list_messages = list_messages
+    panels = InspectorPanels(fake_application).render(state, [])
+    assert len(panels) == 6
+    assert state["conversation_id"] in panels[0]
+    assert "Preserve repeated customer IDs" in panels[1]
+    assert "call-17" in panels[2]
+    assert "Validation Subagent" in panels[4]
+    assert "&lt;script&gt;not HTML&lt;/script&gt;" in panels[4]
+    assert "<script>" not in "".join(panels)
+
+
+@pytest.mark.parametrize("mismatch", ["run_id", "conversation_id"])
+def test_inspectors_do_not_show_a_checkpoint_from_another_run_or_conversation(
+    fake_application: Any,
+    mismatch: str,
+) -> None:
+    state = _ready_state(fake_application)
+    state["run_id"] = str(uuid4())
+    values = {**state, mismatch: str(uuid4()), "request": "OTHER RUN PRIVATE CONTEXT"}
+    fake_application.graph = SimpleNamespace(
+        get_state=lambda config: SimpleNamespace(values=values)
+    )
+    panels = InspectorPanels(fake_application)
+    output = panels.render(state, [])
+    assert "OTHER RUN PRIVATE CONTEXT" not in "".join(output)
+    assert "first checkpoint" in output[0]
+    assert "Start a migration" in panels.render({}, [])[0]
+
+
+def test_trace_keeps_status_transitions_but_not_individual_answer_tokens() -> None:
+    state: dict[str, Any] = {"statuses": empty_pipeline(), "events": []}
+    chat: list[dict[str, str]] = []
+    status = {"type": "component_status", "component": "subagent", "status": "active"}
+    _apply_stream_event(state, chat, _envelope(status))
+    _apply_stream_event(state, chat, _envelope({"type": "assistant_token", "text": "Done"}))
+    assert state["trace"] == [status]
+    assert state["events"] == []
+    assert chat == [{"role": "assistant", "content": "Done"}]
+    for _ in range(210):
+        _apply_stream_event(state, chat, _envelope(status))
+    assert len(state["trace"]) == 200
+
+
+def test_inspectors_refresh_after_final_checkpoint_and_reset_on_new_conversation(
+    fake_application: Any,
+) -> None:
+    state = _ready_state(fake_application)
+    run_id = str(uuid4())
+    values: dict[str, Any] = {**state, "run_id": run_id}
+    fake_application.graph = SimpleNamespace(
+        get_state=lambda config: SimpleNamespace(values=values)
+    )
+
+    def start_run(conversation_id, session_id, request):
+        yield _envelope({"type": "run_output", "run_id": run_id, "answer": "Finished"})
+        # Graph checkpoints finish committing after the custom output is delivered.
+        values["memories"] = [{"memory": {"text": "Final checkpoint memory"}}]
+
+    fake_application.migrations.start_run = start_run
+    app = build_app(fake_application)
+    send = _registered_function(app, "send")
+    updates = list(send("Migrate this", "SELECT 1", state, []))
+    assert "Final checkpoint memory" in updates[-1][12]
+    reset = _registered_function(app, "new_conversation")()
+    assert len(reset) == 20
+    assert "Final checkpoint memory" not in "".join(reset[-6:])
+    assert "No subagent has run" in reset[-2]
+
+
+def test_graph_panel_renders_the_compiled_topology_locally(fake_application: Any) -> None:
+    from langgraph.graph import END, START, StateGraph
+
+    graph = StateGraph(dict)
+    graph.add_node("inspect_schema", lambda state: state)
+    graph.add_edge(START, "inspect_schema")
+    graph.add_edge("inspect_schema", END)
+    fake_application.graph = graph.compile()
+    rendered = InspectorPanels(fake_application).render({}, [])[3]
+    assert "<svg" in rendered
+    assert "inspect schema</text>" in rendered
+    assert "__start__ → inspect_schema" in rendered
+    assert "https://" not in rendered

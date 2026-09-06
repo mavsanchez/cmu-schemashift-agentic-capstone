@@ -144,6 +144,14 @@ components (`mcp`, `memory`, `vector`, `agent`, `subagent`, `model`, and `guardr
 supports durable conversation reload and review resume, and exposes registered migration
 artifacts for download.
 
+After **View Migrated Files**, six inspection tabs expose the selected conversation:
+**Context** shows inputs and the latest checkpoint; **Memory** shows recalled facts
+and memory write decisions; **Tools** lists discovered MCP tools and recorded calls;
+**Graph** draws the compiled workflow locally; **Subagent** shows Migration and
+Validation briefings and results; **Trace** shows backend events and correlation IDs.
+The panels refresh during runs and when reopening saved conversations. Unavailable
+checkpoints or memory are labeled explicitly.
+
 
 # Manual upload demo
 

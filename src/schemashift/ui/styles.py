@@ -178,6 +178,28 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 #workspace_tabs > .tabitem { padding:6px 0 0!important; }
 #workspace_tabs [role="tabpanel"] { padding:6px 0 0!important; }
 #workspace_tabs [role="tab"] { padding:6px 10px;font-size:13px; }
+#workspace_tabs [role="tablist"] { flex-wrap:wrap;gap:2px; }
+.ss-inspector { color:var(--ss-text);padding:10px 2px; }
+.ss-inspector header { margin-bottom:16px; }
+.ss-inspector h2 { margin:0 0 4px;font-size:22px;letter-spacing:-.02em; }
+.ss-inspector header p,.ss-inspector-card > p { color:var(--ss-muted);margin:4px 0 10px; }
+.ss-inspector-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px; }
+.ss-inspector-card { padding:14px 16px;border:1px solid var(--ss-border);border-radius:12px;background:var(--ss-surface);margin-bottom:12px;min-width:0; }
+.ss-inspector-card h3 { font-size:15px;margin:0 0 10px; }
+.ss-inspector-fields { margin:0; }
+.ss-inspector-fields > div { display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;padding:6px 0; }
+.ss-inspector-fields dt { color:var(--ss-muted);font-size:12px; }
+.ss-inspector-fields dd { margin:0;font-size:13px;overflow-wrap:anywhere; }
+.ss-inspector pre { background:var(--ss-inset);color:var(--ss-text);border-radius:8px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;font-size:12px; }
+.ss-inspector details { border:1px solid var(--ss-border);border-radius:9px;padding:10px 12px;margin:8px 0;background:var(--ss-surface); }
+.ss-inspector summary { cursor:pointer;font-size:13px;overflow-wrap:anywhere; }
+.ss-inspector .ss-activity { max-height:var(--ss-workspace-height); }
+.ss-inspector .ss-empty { margin:0;padding:8px 0; }
+.ss-graph-wrap { border:1px solid var(--ss-border);border-radius:12px;background:var(--ss-surface);overflow:auto;max-height:var(--ss-workspace-height); }
+.ss-graph { display:block;width:100%;max-width:880px;min-width:500px;margin:0 auto;color:var(--ss-brand); }
+.ss-graph rect { fill:var(--ss-active-bg);stroke:var(--ss-active-border); }
+.ss-graph text { fill:var(--ss-text);font-family:Aptos,Inter,"Segoe UI",sans-serif;font-size:13px; }
+.gradio-container .ss-inspector :is(h2,h3,summary,dd,pre,code) { color:var(--ss-text)!important; }
 #chat_workspace { gap:8px;align-items:stretch; }
 #chat_workspace > div { min-width:0; }
 #activity_column { padding:8px 10px;border-radius:10px!important;box-shadow:none!important; }
