@@ -4,8 +4,10 @@ CSS = r"""
 /* Keep native Gradio controls and custom HTML on the same palette. Gradio
    toggles .dark for both system preference and its explicit theme setting. */
 .gradio-container {
-    --ss-workspace-height:max(340px, calc(100dvh - 350px));
-    --layout-gap:10px;
+    --ss-workspace-height:max(320px, calc(100dvh - 280px));
+    --layout-gap:6px;
+    --block-padding:8px;
+    --block-radius:10px;
     --ss-bg:#f4efe6;
     --ss-surface:#fffdf9;
     --ss-inset:#f1efec;
@@ -155,55 +157,132 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
    composer below a tall chat. Long conversations and activity scroll inside
    their panels; smaller windows retain ordinary page scrolling. */
 #workspace_header,#pipeline_rail { padding:0!important;min-height:0!important; }
-.ss-hero { padding:12px 18px;gap:16px;margin-bottom:0;border-radius:18px; }
-.ss-hero h1 { font-size:clamp(22px,1.7vw,28px);margin:3px 0; }
-.ss-hero p { font-size:13px; }
+.gradio-container { padding:8px 12px!important; }
+.gradio-container > .main { padding:0!important; }
+.gradio-container footer { margin:4px 0 0!important;padding:0!important; }
+.ss-hero { padding:8px 12px;gap:10px;margin-bottom:0;border-radius:12px;box-shadow:none; }
+.ss-hero h1 { font-size:clamp(20px,1.5vw,24px);margin:1px 0; }
+.ss-hero p { font-size:12px; }
 .ss-eyebrow { font-size:10px; }
-.ss-badge { padding:6px 9px;font-size:12px; }
-.ss-pipeline { padding:8px;gap:8px;margin:0;border-radius:18px; }
-.ss-stage { grid-template-columns:36px 1fr;gap:8px;min-height:60px;padding:8px; }
-.ss-stage:after { width:9px;height:9px;top:7px;right:7px; }
-.ss-stage strong { padding-right:8px; }
-.ss-icon { width:36px;height:36px;border-radius:10px; }
-.ss-icon svg { width:23px;height:23px; }
+.ss-badge { padding:4px 7px;font-size:11px; }
+.ss-pipeline { padding:5px;gap:4px;margin:0;border-radius:12px;box-shadow:none; }
+.ss-stage { grid-template-columns:28px minmax(0,1fr);gap:6px;min-height:44px;padding:6px;border-radius:8px; }
+.ss-stage:after { width:6px;height:6px;top:6px;right:6px; }
+.ss-stage strong { padding-right:8px;font-size:12px;overflow-wrap:anywhere; }
+.ss-stage span { font-size:11px; }
+.ss-icon { width:28px;height:28px;border-radius:7px; }
+.ss-icon svg { width:19px;height:19px; }
 #conversation_toolbar { align-items:center; }
 #conversation_selector { min-width:0; }
 #conversation_selector [role="listbox"] { max-height:280px;overflow-y:auto; }
-#workspace_tabs > .tabitem { padding:10px 0 0!important; }
-#chat_workspace { gap:12px;align-items:stretch; }
+#workspace_tabs > .tabitem { padding:6px 0 0!important; }
+#workspace_tabs [role="tabpanel"] { padding:6px 0 0!important; }
+#workspace_tabs [role="tab"] { padding:6px 10px;font-size:13px; }
+#chat_workspace { gap:8px;align-items:stretch; }
 #chat_workspace > div { min-width:0; }
-#activity_column { padding:10px 14px; }
+#activity_column { padding:8px 10px;border-radius:10px!important;box-shadow:none!important; }
 #activity_column h3 { margin:0 0 6px; }
-.ss-event { grid-template-columns:8px 58px minmax(0,1fr);gap:8px; }
+.ss-event { grid-template-columns:8px 58px minmax(0,1fr);gap:6px;padding:6px 0; }
 .ss-event p { overflow-wrap:anywhere; }
+.ss-empty { padding:10px; }
+.ss-decision { padding:10px;border-radius:10px; }
+.ss-decision h3 { margin:6px 0; }
+.ss-risk { padding:3px 7px; }
 .ss-note { margin:4px 0 0; }
-@media(min-width:1181px) {
+@media(max-width:1180px) {
+    .ss-pipeline { grid-template-columns:repeat(7,minmax(145px,1fr));overflow-x:auto; }
+}
+@media(min-width:941px) {
+    #chat_workspace {
+        display:grid!important;
+        grid-template-columns:minmax(0,5fr) minmax(0,4fr) minmax(0,3fr);
+    }
     #conversation_column,#query_column,#activity_column {
         height:var(--ss-workspace-height);
-        min-height:0;
+        min-height:0!important;
+        min-width:0!important;
+        box-sizing:border-box;
     }
-    #query_column { gap:10px; }
-    #original_sql { flex:1;min-height:0; }
+    #chat_history { height:100%!important;min-height:0!important; }
+    #query_column { gap:6px;display:flex;flex-direction:column; }
+    #chat_input,#send_btn { flex:none; }
+    #original_sql { flex:1;min-height:0!important;overflow:hidden; }
     #original_sql .cm-editor {
-        height:calc(var(--ss-workspace-height) - 185px);
-        min-height:140px;
+        height:var(--ss-editor-height, 180px)!important;
+        min-height:0!important;
     }
     #original_sql .cm-scroller { overflow:auto; }
+    #activity_log { min-height:0;overflow:auto; }
     #activity_log .ss-activity {
-        max-height:calc(var(--ss-workspace-height) - 64px);
-        overflow-y:auto;
+        max-height:none;
     }
 }
-@media(max-width:1180px) {
+@media(max-width:940px) {
     #chat_workspace { flex-direction:column; }
-    #chat_history { height:340px!important; }
+    #query_column { order:-1; }
+    #chat_history { height:240px!important; }
+    #original_sql .cm-editor { max-height:200px; }
     #chat_workspace > div { width:100%;min-width:0!important; }
     #activity_log .ss-activity { max-height:280px; }
+    #send_btn { position:sticky;bottom:8px;z-index:2;min-height:40px; }
 }
 @media(max-width:560px) {
-    .gradio-container { padding:10px!important; }
-    .ss-hero { padding:12px; }
+    .gradio-container { padding:8px!important; }
+    .ss-hero { padding:8px;gap:6px; }
+    .ss-pipeline { grid-template-columns:repeat(7,minmax(145px,1fr)); }
+    .ss-hero p,.ss-eyebrow { display:none; }
     .ss-badge { margin:4px 4px 0 0; }
+}
+"""
+
+
+# Measure the rendered layout rather than assuming a fixed header height.
+# ResizeObserver covers wrapped labels, prompt growth, font loading, and zoom.
+LAYOUT_JS = r"""
+() => {
+    if (window.__ssLayoutCleanup) window.__ssLayoutCleanup();
+    let frame;
+    const workspace = document.getElementById('chat_workspace');
+    const container = workspace?.closest('.gradio-container');
+    if (!container) return;
+    const update = () => {
+        if (window.innerWidth < 941 || !workspace.getClientRects().length) return;
+        const viewport = window.visualViewport;
+        const bottom = viewport ? viewport.height + viewport.offsetTop : window.innerHeight;
+        const height = Math.max(220, Math.floor(bottom - workspace.getBoundingClientRect().top - 48));
+        const value = `${height}px`;
+        if (container.style.getPropertyValue('--ss-workspace-height') !== value)
+            container.style.setProperty('--ss-workspace-height', value);
+        const code = document.getElementById('original_sql');
+        const editor = code?.querySelector('.cm-editor');
+        if (editor) {
+            const editorHeight = Math.max(60, Math.floor(
+                code.getBoundingClientRect().bottom - editor.getBoundingClientRect().top - 4
+            ));
+            const editorValue = `${editorHeight}px`;
+            if (container.style.getPropertyValue('--ss-editor-height') !== editorValue)
+                container.style.setProperty('--ss-editor-height', editorValue);
+        }
+    };
+    const schedule = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(update);
+    };
+    const observer = new ResizeObserver(schedule);
+    ['workspace_header', 'conversation_toolbar', 'pipeline_rail', 'workspace_tabs',
+     'chat_input', 'original_sql'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) observer.observe(element);
+    });
+    window.addEventListener('resize', schedule);
+    window.visualViewport?.addEventListener('resize', schedule);
+    schedule();
+    window.__ssLayoutCleanup = () => {
+        observer.disconnect();
+        cancelAnimationFrame(frame);
+        window.removeEventListener('resize', schedule);
+        window.visualViewport?.removeEventListener('resize', schedule);
+    };
 }
 """
 

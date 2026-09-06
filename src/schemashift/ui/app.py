@@ -20,7 +20,7 @@ from schemashift.services import (
 from .activity import render_activity
 from .decisions import render_decision
 from .pipeline import apply_component_event, empty_pipeline, render_pipeline
-from .styles import CSS, hero_html
+from .styles import CSS, LAYOUT_JS, hero_html
 
 ROLE_FIELD = {
     SourceRole.OLD_SCHEMA.value: "old_schema_source_id",
@@ -615,6 +615,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         return resolved
 
     with gr.Blocks(analytics_enabled=False, title="SchemaShift", fill_width=True) as demo:
+        demo.load(fn=None, js=LAYOUT_JS)
         browser_state = gr.State({})
         gr.HTML(hero_html("Local | PostgreSQL + Redis Stack"), elem_id="workspace_header")
         with gr.Row(elem_id="conversation_toolbar"):
@@ -633,6 +634,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 with gr.Column(scale=5, min_width=320, elem_id="conversation_column"):
                     chatbot = gr.Chatbot(
                         label="Migration conversation",
+                        placeholder="Describe your migration and select Migrate SQL to begin.",
                         height="var(--ss-workspace-height)",
                         elem_id="chat_history",
                     )
@@ -640,7 +642,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                     prompt = gr.Textbox(
                         label="Migration request",
                         placeholder="Describe how this query should work on the new schema…",
-                        lines=2,
+                        lines=1,
                         max_lines=3,
                         elem_id="chat_input",
                     )
@@ -650,7 +652,9 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                         lines=8,
                         elem_id="original_sql",
                     )
-                    send = gr.Button("Migrate SQL", variant="primary", elem_id="send_btn")
+                    send = gr.Button(
+                        "Migrate SQL", variant="primary", size="sm", elem_id="send_btn"
+                    )
                 with gr.Column(
                     scale=3, min_width=240, elem_id="activity_column", elem_classes="ss-panel"
                 ):
@@ -661,7 +665,8 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 reviewer_feedback = gr.Textbox(
                     label="Reviewer feedback",
                     placeholder="Explain a rejection or record approval context…",
-                    lines=4,
+                    lines=2,
+                    max_lines=4,
                     visible=False,
                     interactive=False,
                     elem_id="reviewer_feedback",
@@ -669,11 +674,13 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 with gr.Row():
                     approve_button = gr.Button(
                         "Approve displayed candidate",
+                        size="sm",
                         visible=False,
                         elem_id="approve_btn",
                     )
                     reject_button = gr.Button(
                         "Reject / request revision",
+                        size="sm",
                         visible=False,
                         elem_id="reject_btn",
                     )
@@ -694,7 +701,10 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 )
                 upload_status = gr.Markdown("Upload files to infer provisional roles.")
                 confirm_button = gr.Button(
-                    "Confirm roles and ingest", variant="primary", elem_id="confirm_files_btn"
+                    "Confirm roles and ingest",
+                    variant="primary",
+                    size="sm",
+                    elem_id="confirm_files_btn",
                 )
                 source_summary = gr.Markdown("No source selection loaded.")
             with gr.Tab("View Migrated Files"):
@@ -708,11 +718,6 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                     interactive=False,
                     elem_id="artifact_download",
                 )
-        gr.HTML(
-            "<p class='ss-note'>Local synthetic-data capstone · no cloud fallback · "
-            "restricted read-only validation</p>"
-        )
-
         initialization_outputs = [
             browser_state,
             conversation,
