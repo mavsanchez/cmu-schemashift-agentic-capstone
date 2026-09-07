@@ -941,7 +941,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
     with gr.Blocks(analytics_enabled=False, title="SchemaShift", fill_width=True) as demo:
         demo.load(fn=None, js=LAYOUT_JS)
         browser_state = gr.State({})
-        gr.HTML(hero_html("Local | PostgreSQL + Redis Stack"), elem_id="workspace_header")
+        gr.HTML(hero_html("Local | PostgreSQL + Redis Stack | Human review enabled"), elem_id="workspace_header")
         with gr.Row(elem_id="conversation_toolbar"):
             conversation = gr.Dropdown(
                 label="Conversation history",
@@ -950,7 +950,7 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 scale=5,
             )
             new_button = gr.Button(
-                "New Conversation", elem_id="new_conversation_btn", size="sm", scale=1
+                "New Conversation", elem_id="new_conversation_btn", size="m", scale=1
             )
         pipeline = gr.HTML(render_pipeline(), elem_id="pipeline_rail")
         with gr.Tabs(elem_id="workspace_tabs"):

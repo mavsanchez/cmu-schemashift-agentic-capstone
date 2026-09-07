@@ -219,6 +219,19 @@ def test_css_has_responsive_focus_and_reduced_motion_contracts() -> None:
     assert ".ss-stage.active:after,.ss-live-badge:before{animation:none!important}" in CSS
 
 
+def test_css_uses_nytimes_inspired_editorial_font_hierarchy() -> None:
+    assert '--ss-font-headline:Georgia,"Times New Roman",Times,serif' in CSS
+    assert '--ss-font-body:Georgia,"Times New Roman",Times,serif' in CSS
+    assert "--ss-font-ui:Helvetica,Arial,sans-serif" in CSS
+    assert '--ss-font-mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace' in CSS
+    assert "font-family:var(--ss-font-headline)!important" in CSS
+    assert "font-family:var(--ss-font-body)!important" in CSS
+    assert "font-family:var(--ss-font-ui)!important" in CSS
+    assert "font-family:var(--ss-font-mono)!important" in CSS
+    assert "@font-face" not in CSS
+    assert "g1.nyt.com" not in CSS
+
+
 def test_desktop_activity_and_decision_panels_have_separate_scroll_regions() -> None:
     desktop_css = CSS.split("@media(min-width:941px)", 1)[1].split(
         "@media(max-width:940px)", 1

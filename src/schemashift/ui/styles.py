@@ -43,6 +43,12 @@ CSS = r"""
     --ss-risk-text:#805d1f;
     --ss-risk-bg:#f5ead2;
     --ss-focus:#477db3;
+    /* NYTimes-inspired editorial hierarchy using license-safe local fallbacks:
+       Cheltenham-like headlines, Imperial-like reading copy, Franklin-like UI. */
+    --ss-font-headline:Georgia,"Times New Roman",Times,serif;
+    --ss-font-body:Georgia,"Times New Roman",Times,serif;
+    --ss-font-ui:Helvetica,Arial,sans-serif;
+    --ss-font-mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
     color-scheme:light;
 
     --body-background-fill:var(--ss-bg);
@@ -113,10 +119,31 @@ CSS = r"""
     --ss-focus:#a5cfff;
     color-scheme:dark;
 }
-.gradio-container{width:100%!important;max-width:none!important;min-height:100dvh;box-sizing:border-box;margin:0!important;padding:12px 20px!important;background:radial-gradient(circle at 12% 4%,rgba(118,147,107,.12),transparent 28%),radial-gradient(circle at 92% 2%,rgba(182,106,75,.10),transparent 24%),var(--ss-bg)!important;color:var(--ss-text)!important;font-family:Aptos,Inter,"Segoe UI",system-ui,sans-serif!important}
+.gradio-container{width:100%!important;max-width:none!important;min-height:100dvh;box-sizing:border-box;margin:0!important;padding:12px 20px!important;background:radial-gradient(circle at 12% 4%,rgba(118,147,107,.12),transparent 28%),radial-gradient(circle at 92% 2%,rgba(182,106,75,.10),transparent 24%),var(--ss-bg)!important;color:var(--ss-text)!important;font-family:var(--ss-font-ui)!important}
 .ss-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 28px;margin-bottom:8px;border:1px solid rgba(95,115,86,.24);background:linear-gradient(120deg,#566a4f,#667c5c);color:#fffdf8;border-radius:28px;box-shadow:0 18px 50px rgba(72,56,43,.10)}.ss-hero h1{margin:5px 0;font-size:clamp(25px,3vw,40px);letter-spacing:-.03em}.ss-hero p{margin:0;color:#eee7dc}.ss-eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:800;opacity:.82}.ss-badge{display:inline-block;border:1px solid rgba(255,255,255,.30);background:rgba(255,255,255,.10);padding:8px 11px;border-radius:999px;font-size:13px;margin-left:7px}
 .ss-pipeline{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;padding:15px;margin:10px 0 18px;border-radius:24px;border:1px solid var(--ss-border);background:var(--ss-surface);box-shadow:0 10px 30px rgba(72,56,43,.06)}.ss-stage{position:relative;display:grid;grid-template-columns:44px 1fr;align-items:center;gap:10px;min-height:76px;padding:12px;border:1px solid transparent;border-radius:17px}.ss-stage:after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;right:10px;top:10px;background:var(--ss-idle);box-shadow:0 0 0 4px rgba(156,150,143,.18)}.ss-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;border:1px solid var(--ss-border);background:var(--ss-inset);color:var(--ss-icon)}.ss-icon svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.ss-stage strong{display:block;font-size:14px}.ss-stage span{display:block;color:var(--ss-muted);font-size:12px}.ss-stage.active{background:var(--ss-active-bg);border-color:var(--ss-active-border);box-shadow:0 10px 28px rgba(95,115,86,.13)}.ss-stage.active .ss-icon{color:var(--ss-active-icon);background:var(--ss-active-icon-bg);border-color:var(--ss-active-border);box-shadow:0 0 0 5px rgba(158,212,143,.18)}.ss-stage.active:after{background:var(--ss-active);box-shadow:0 0 0 5px rgba(158,212,143,.22);animation:sspulse 1.2s infinite}.ss-stage.done{background:var(--ss-done-bg);border-color:var(--ss-done-border)}.ss-stage.done .ss-icon{color:var(--ss-done-icon);background:var(--ss-done-icon-bg);border-color:var(--ss-done-border)}.ss-stage.done:after{background:var(--ss-done);box-shadow:0 0 0 4px rgba(71,125,179,.16)}.ss-stage.error{background:var(--ss-error-bg);border-color:var(--ss-error-border)}.ss-stage.error .ss-icon{color:var(--ss-error-icon);background:var(--ss-error-icon-bg);border-color:var(--ss-error-border)}.ss-stage.error:after{background:var(--ss-error)}@keyframes sspulse{50%{transform:scale(1.18);opacity:.64}}
-.ss-panel{border:1px solid var(--ss-border)!important;border-radius:20px!important;overflow:hidden!important;background:var(--ss-surface)!important;box-shadow:0 12px 35px rgba(72,56,43,.07)!important;padding:4px 10px}.ss-activity{font-family:Aptos,Inter,"Segoe UI",system-ui,sans-serif;color:var(--ss-text);max-height:390px;overflow:auto}.ss-event{display:grid;grid-template-columns:10px 72px 1fr;gap:9px;align-items:start;padding:10px 0;border-bottom:1px solid var(--ss-border);font-size:13px}.ss-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--ss-brand)}.ss-event.warning .ss-dot{background:var(--ss-warning)}.ss-event.error .ss-dot{background:var(--ss-error)}.ss-event time{color:var(--ss-muted)}.ss-event p{margin:2px 0 0;color:var(--ss-muted)}.ss-empty{padding:20px;color:var(--ss-muted)}.ss-decision{border:1px solid var(--ss-border);background:var(--ss-review-bg);border-radius:16px;padding:16px}.ss-decision-empty{background:var(--ss-inset);border-color:var(--ss-border)}.ss-risk{display:inline-block;color:var(--ss-risk-text);background:var(--ss-risk-bg);border:1px solid var(--ss-border);padding:6px 9px;border-radius:999px;font-size:12px;font-weight:750}.ss-decision h3{margin:13px 0 6px}.ss-decision p{color:var(--ss-muted);line-height:1.5}.ss-decision pre{white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--ss-inset);border-radius:10px;padding:10px}.ss-review-id{font-family:monospace;font-size:12px}.ss-note{color:var(--ss-muted);font-size:12px;text-align:center;margin:12px 0 4px}
+.ss-panel{border:1px solid var(--ss-border)!important;border-radius:20px!important;overflow:hidden!important;background:var(--ss-surface)!important;box-shadow:0 12px 35px rgba(72,56,43,.07)!important;padding:4px 10px}.ss-activity{font-family:var(--ss-font-ui);color:var(--ss-text);max-height:390px;overflow:auto}.ss-event{display:grid;grid-template-columns:10px 72px 1fr;gap:9px;align-items:start;padding:10px 0;border-bottom:1px solid var(--ss-border);font-size:13px}.ss-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--ss-brand)}.ss-event.warning .ss-dot{background:var(--ss-warning)}.ss-event.error .ss-dot{background:var(--ss-error)}.ss-event time{color:var(--ss-muted)}.ss-event p{margin:2px 0 0;color:var(--ss-muted)}.ss-empty{padding:20px;color:var(--ss-muted)}.ss-decision{border:1px solid var(--ss-border);background:var(--ss-review-bg);border-radius:16px;padding:16px}.ss-decision-empty{background:var(--ss-inset);border-color:var(--ss-border)}.ss-risk{display:inline-block;color:var(--ss-risk-text);background:var(--ss-risk-bg);border:1px solid var(--ss-border);padding:6px 9px;border-radius:999px;font-size:12px;font-weight:750}.ss-decision h3{margin:13px 0 6px}.ss-decision p{color:var(--ss-muted);line-height:1.5}.ss-decision pre{white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--ss-inset);border-radius:10px;padding:10px}.ss-review-id{font-family:var(--ss-font-mono);font-size:12px}.ss-note{color:var(--ss-muted);font-size:12px;text-align:center;margin:12px 0 4px}
+/* Mirror the Times' editorial type roles without loading its proprietary fonts. */
+.gradio-container :is(h1,h2,h3,h4) {
+    font-family:var(--ss-font-headline)!important;
+    font-weight:700;
+    line-height:1.12;
+    text-wrap:balance;
+}
+.gradio-container .prose :is(p,li,blockquote),
+.gradio-container :is(.ss-hero p,.ss-decision p,.ss-inspector header p,.ss-inspector-card > p,.ss-inspector-fields dd),
+#chat_history :is(.message,.prose) {
+    font-family:var(--ss-font-body)!important;
+}
+.gradio-container :is(button,input,textarea,select,label,[role="tab"],.ss-eyebrow,.ss-badge,.ss-pipeline,.ss-panel-heading p,.ss-activity,.ss-risk,.ss-note) {
+    font-family:var(--ss-font-ui)!important;
+}
+.gradio-container :is(pre,code,kbd,samp,.cm-editor,.ss-review-id) {
+    font-family:var(--ss-font-mono)!important;
+}
+.gradio-container :is(button,[role="tab"],.ss-eyebrow,.ss-risk) {
+    letter-spacing:.025em;
+}
 /* Gradio's HTML typography applies colors directly to descendants. Set the
    foreground on the actual labels and SVG shapes, not just their parents. */
 .gradio-container .ss-stage strong,
@@ -203,7 +230,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .ss-graph-wrap { border:1px solid var(--ss-border);border-radius:12px;background:var(--ss-surface);overflow:auto;max-height:var(--ss-workspace-height); }
 .ss-graph { display:block;width:100%;max-width:880px;min-width:500px;margin:0 auto;color:var(--ss-brand); }
 .ss-graph rect { fill:var(--ss-active-bg);stroke:var(--ss-active-border); }
-.ss-graph text { fill:var(--ss-text);font-family:Aptos,Inter,"Segoe UI",sans-serif;font-size:13px; }
+.ss-graph text { fill:var(--ss-text);font-family:var(--ss-font-ui);font-size:13px; }
 .gradio-container .ss-inspector :is(h2,h3,summary,dd,pre,code) { color:var(--ss-text)!important; }
 #chat_workspace { gap:10px;align-items:stretch; }
 #chat_workspace > div { min-width:0; }
@@ -398,6 +425,6 @@ def hero_html(environment: str = "Local") -> str:
     <div class='ss-hero'>
       <div><div class='ss-eyebrow'>SchemaShift • CMU Agentic AI Capstone</div>
       <h1>Schema migration workspace</h1>
-      <p>Migrate SQL with deterministic validation, visible evidence, and review when needed.</p></div>
-      <div>{environment_badges}<span class='ss-badge'>Human review enabled</span></div>
+      </div>
+      <div>{environment_badges}</div>
     </div>"""
