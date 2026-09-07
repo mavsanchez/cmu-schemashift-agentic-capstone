@@ -129,11 +129,11 @@ def test_decision_panel_shows_candidate_alternatives_and_validation_evidence() -
     assert "Review &lt;ambiguous&gt; mapping" in rendered
 
 
-def test_review_controls_stay_hidden_until_interrupt_and_obey_approvability() -> None:
+def test_review_controls_stay_visible_but_disabled_until_interrupt() -> None:
     approve, reject = _review_updates({"review": None, "busy": False})
-    assert approve["visible"] is False
+    assert approve["visible"] is True
     assert approve["interactive"] is False
-    assert reject["visible"] is False
+    assert reject["visible"] is True
     assert reject["interactive"] is False
 
 
@@ -216,4 +216,21 @@ def test_css_has_responsive_focus_and_reduced_motion_contracts() -> None:
     assert "@media(max-width:560px)" in CSS
     assert "grid-template-columns:1fr" in CSS
     assert "@media(prefers-reduced-motion:reduce)" in CSS
-    assert ".ss-stage.active:after{animation:none!important}" in CSS
+    assert ".ss-stage.active:after,.ss-live-badge:before{animation:none!important}" in CSS
+
+
+def test_desktop_activity_and_decision_panels_have_separate_scroll_regions() -> None:
+    desktop_css = CSS.split("@media(min-width:941px)", 1)[1].split(
+        "@media(max-width:940px)", 1
+    )[0]
+
+    assert "#activity_column {" in desktop_css
+    assert "display:grid!important" in desktop_css
+    assert "grid-template-rows:" in desktop_css
+    assert "#activity_log {" in desktop_css
+    assert "overflow:hidden!important" in desktop_css
+    assert "#activity_log .html-container" in desktop_css
+    assert "#activity_log .ss-activity" in desktop_css
+    assert "#human_decision .ss-decision" in desktop_css
+    assert desktop_css.count("max-height:100%!important") == 2
+    assert desktop_css.count("overflow-y:auto") == 2

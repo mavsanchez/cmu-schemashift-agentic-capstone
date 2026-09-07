@@ -180,6 +180,36 @@ def test_knowledge_ingest_is_idempotent_and_searchable(redis_client) -> None:
         _drop(redis_client, index_name, key_prefix)
 
 
+def test_knowledge_library_groups_indexed_chunks_and_pages_without_embedding(redis_client) -> None:
+    suffix = uuid.uuid4().hex
+    index_name = f"test-schemashift-library-{suffix}"
+    key_prefix = f"test:schemashift:library:{suffix}:"
+    store = KnowledgeStore(
+        redis_client, MockProvider(strict=False), index_name=index_name, key_prefix=key_prefix
+    )
+    try:
+        store.ensure_index()
+        assert store.list_documents() == []
+        customer = chunk_document(
+            "# Rename\n\nMap customer to customers.\n\n# Date\n\nMap signup_date to signup_ts.",
+            "customer.md",
+            metadata={"topic": "customers"},
+        )
+        orders = chunk_document("# Orders\n\nUse sales_orders.", "orders.md")
+        store.ingest([*customer, *orders])
+        # Browsing the library must work without any model calls.
+        store.model = None
+        documents = store.list_documents()
+        assert [document.document for document in documents] == ["customer.md", "orders.md"]
+        assert documents[0].chunk_count == 2
+        assert documents[0].metadata == [{"topic": "customers"}]
+        assert documents[1].chunk_count == 1
+        assert store.list_documents(offset=1, limit=1) == documents[1:]
+        assert store.list_documents(offset=2, limit=1) == []
+    finally:
+        _drop(redis_client, index_name, key_prefix)
+
+
 def test_semantic_memory_round_trip(redis_client) -> None:
     suffix = uuid.uuid4().hex
     index_name = f"test-schemashift-memory-{suffix}"

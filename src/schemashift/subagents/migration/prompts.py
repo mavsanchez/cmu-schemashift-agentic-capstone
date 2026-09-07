@@ -19,8 +19,9 @@ sources disagree. Return no prose outside the requested schema.
 
 {LOCAL_DATA_BOUNDARY}
 {EVIDENCE_RULES}
-""".strip()
+    """.strip()
     payload = {
+        "request": state.get("request", ""),
         "original_sql": state.get("original_sql", ""),
         "old_schema": state.get("old_schema", {}),
         "new_schema": state.get("new_schema", {}),
@@ -43,8 +44,9 @@ types, aliases, and aggregates. Each branch must describe mappings and any
 remaining ambiguity or evidence conflict for that exact SQL. Do not change
 correct output contracts.
 {LOCAL_DATA_BOUNDARY}
-""".strip()
+    """.strip()
     payload = {
+        "request": state.get("request", ""),
         "original_sql": state.get("original_sql", ""),
         "new_schema": state.get("new_schema", {}),
         "evidence": state.get("evidence", []),

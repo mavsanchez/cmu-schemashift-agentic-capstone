@@ -1,5 +1,7 @@
 """SchemaShift's adapted earth-tone Gradio theme."""
 
+import html
+
 CSS = r"""
 /* Keep native Gradio controls and custom HTML on the same palette. Gradio
    toggles .dark for both system preference and its explicit theme setting. */
@@ -146,12 +148,13 @@ CSS = r"""
 }
 .gradio-container input::placeholder,
 .gradio-container textarea::placeholder { color:var(--ss-muted)!important;opacity:1; }
-#approve_btn,#send_btn,#confirm_files_btn{background:var(--ss-brand)!important;color:#fff!important;border:0!important}
-#approve_btn:hover,#send_btn:hover,#confirm_files_btn:hover{background:var(--ss-brand-deep)!important}
+#approve_btn,#send_btn,#confirm_files_btn,#chat_send_btn{background:var(--ss-brand)!important;color:#fff!important;border:0!important}
+#approve_btn:hover,#send_btn:hover,#confirm_files_btn:hover,#chat_send_btn:hover{background:var(--ss-brand-deep)!important}
 #reject_btn{background:var(--ss-error-bg)!important;color:var(--ss-error-icon)!important;border-color:var(--ss-error-border)!important}
+#request_changes_btn{background:var(--ss-inset)!important;color:var(--ss-text)!important;border-color:var(--ss-control-border)!important}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #477db3!important;outline-offset:2px!important}
 .gradio-container :is(button,input,textarea,[tabindex]):focus-visible{outline-color:var(--ss-focus)!important}
-@media(max-width:1180px){.ss-pipeline{grid-template-columns:repeat(4,1fr)}}@media(max-width:940px){.ss-pipeline{grid-template-columns:repeat(2,1fr)}.ss-hero{align-items:flex-start;flex-direction:column}}@media(max-width:560px){.ss-pipeline{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){.ss-stage.active:after{animation:none!important}}
+@media(max-width:1180px){.ss-pipeline{grid-template-columns:repeat(4,1fr)}}@media(max-width:940px){.ss-pipeline{grid-template-columns:repeat(2,1fr)}.ss-hero{align-items:flex-start;flex-direction:column}}@media(max-width:560px){.ss-pipeline{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){.ss-stage.active:after,.ss-live-badge:before{animation:none!important}}
 
 /* Use the desktop width for three working columns instead of stacking the
    composer below a tall chat. Long conversations and activity scroll inside
@@ -184,6 +187,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .ss-inspector h2 { margin:0 0 4px;font-size:22px;letter-spacing:-.02em; }
 .ss-inspector header p,.ss-inspector-card > p { color:var(--ss-muted);margin:4px 0 10px; }
 .ss-inspector-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px; }
+.ss-memory-grid { align-items:start; }
+.ss-knowledge-list { max-height:min(440px,var(--ss-workspace-height));overflow:auto; }
 .ss-inspector-card { padding:14px 16px;border:1px solid var(--ss-border);border-radius:12px;background:var(--ss-surface);margin-bottom:12px;min-width:0; }
 .ss-inspector-card h3 { font-size:15px;margin:0 0 10px; }
 .ss-inspector-fields { margin:0; }
@@ -200,10 +205,43 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .ss-graph rect { fill:var(--ss-active-bg);stroke:var(--ss-active-border); }
 .ss-graph text { fill:var(--ss-text);font-family:Aptos,Inter,"Segoe UI",sans-serif;font-size:13px; }
 .gradio-container .ss-inspector :is(h2,h3,summary,dd,pre,code) { color:var(--ss-text)!important; }
-#chat_workspace { gap:8px;align-items:stretch; }
+#chat_workspace { gap:10px;align-items:stretch; }
 #chat_workspace > div { min-width:0; }
-#activity_column { padding:8px 10px;border-radius:10px!important;box-shadow:none!important; }
-#activity_column h3 { margin:0 0 6px; }
+.ss-workspace-card { padding:10px!important;border:1px solid var(--ss-border)!important;border-radius:12px!important;background:var(--ss-surface)!important;box-shadow:0 6px 18px rgba(72,56,43,.05)!important; }
+.ss-migration-card { border-color:rgba(95,115,86,.42)!important;box-shadow:0 8px 24px rgba(72,56,43,.08)!important; }
+.ss-panel-heading { display:flex;align-items:flex-start;gap:9px;min-height:38px;color:var(--ss-brand-deep); }
+.ss-panel-heading > span:first-child { display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:var(--ss-active-bg);color:var(--ss-brand);font-size:16px; }
+.ss-panel-heading > div { min-width:0;flex:1; }
+.ss-panel-heading h2 { margin:0;font-size:16px;line-height:1.25;color:var(--ss-text)!important; }
+.ss-panel-heading p { margin:2px 0 0;color:var(--ss-muted)!important;font-size:11px;line-height:1.35; }
+.ss-migration-heading h2 { font-size:18px; }
+.ss-migration-heading p { font-size:12px;max-width:680px; }
+.ss-live-badge { width:auto!important;height:auto!important;padding:3px 8px;border-radius:999px!important;background:var(--ss-active-bg)!important;color:var(--ss-active-icon)!important;font-size:11px!important;font-weight:700; }
+.ss-live-badge:before { content:"";display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:var(--ss-active);animation:sspulse 1.2s infinite; }
+.ss-schema-direction { display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:8px;align-items:center; }
+.ss-schema-side { min-width:0;padding:9px 12px;border:1px solid var(--ss-border);border-radius:10px;background:var(--ss-inset); }
+.ss-schema-side span { display:block;color:var(--ss-muted)!important;font-size:11px; }
+.ss-schema-side strong { display:block;margin-top:2px;color:var(--ss-text)!important;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.ss-schema-target { background:var(--ss-active-bg);border-color:var(--ss-active-border); }
+.ss-schema-arrow { color:var(--ss-brand)!important;text-align:center;font-size:20px;font-weight:700; }
+#sql_import_row { align-items:center;gap:6px; }
+#sql_import_state { flex:1;min-width:0;padding:0!important; }
+.ss-import-state { display:flex;align-items:center;gap:6px;min-height:30px;padding:4px 8px;color:var(--ss-muted);font-size:11px;overflow:hidden; }
+.ss-import-state strong { color:var(--ss-link)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+#clear_sql_btn { flex:none;min-width:78px; }
+#migration_actions { align-items:stretch;gap:8px; }
+#migration_actions > * { min-height:38px; }
+#import_sql_btn { background:var(--ss-surface)!important;color:var(--ss-brand-deep)!important;border-color:var(--ss-control-border)!important; }
+#conversation_composer { align-items:stretch;gap:6px; }
+#conversation_composer #chat_input { min-width:0; }
+#chat_send_btn { align-self:stretch; }
+#activity_column { gap:6px;min-height:0;overflow:auto; }
+#activity_log { min-height:88px;overflow:hidden; }
+.ss-decision-heading { margin-top:2px;padding-top:8px;border-top:1px solid var(--ss-border); }
+#human_decision .ss-decision { max-height:210px;overflow:auto; }
+#human_decision_detail .ss-decision { max-height:none; }
+#review_actions { display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px; }
+#review_actions button { min-width:0;font-size:11px;padding-left:5px;padding-right:5px; }
 .ss-event { grid-template-columns:8px 58px minmax(0,1fr);gap:6px;padding:6px 0; }
 .ss-event p { overflow-wrap:anywhere; }
 .ss-empty { padding:10px; }
@@ -217,7 +255,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 @media(min-width:941px) {
     #chat_workspace {
         display:grid!important;
-        grid-template-columns:minmax(0,5fr) minmax(0,4fr) minmax(0,3fr);
+        grid-template-columns:minmax(250px,3fr) minmax(400px,5fr) minmax(270px,3fr);
     }
     #conversation_column,#query_column,#activity_column {
         height:var(--ss-workspace-height);
@@ -225,24 +263,61 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
         min-width:0!important;
         box-sizing:border-box;
     }
-    #chat_history { height:100%!important;min-height:0!important; }
+    #conversation_column { display:flex;flex-direction:column;gap:6px; }
+    #chat_history { flex:1;height:auto!important;min-height:0!important; }
+    #conversation_composer { flex:none; }
     #query_column { gap:6px;display:flex;flex-direction:column; }
-    #chat_input,#send_btn { flex:none; }
+    #query_column > *:not(#original_sql) { flex:none; }
     #original_sql { flex:1;min-height:0!important;overflow:hidden; }
     #original_sql .cm-editor {
         height:var(--ss-editor-height, 180px)!important;
         min-height:0!important;
     }
     #original_sql .cm-scroller { overflow:auto; }
-    #activity_log { min-height:0;overflow:auto; }
+    #activity_column {
+        display:grid!important;
+        grid-template-rows:auto minmax(112px,1fr) auto minmax(96px,210px) auto auto;
+        overflow:auto!important;
+    }
+    #activity_column > * { min-height:0; }
+    #activity_log {
+        height:100%!important;
+        min-height:0!important;
+        overflow:hidden!important;
+    }
+    #activity_log .html-container,
+    #human_decision .html-container,
+    #activity_log .prose,
+    #human_decision .prose {
+        box-sizing:border-box;
+        height:100%;
+        min-height:0;
+        overflow:hidden;
+    }
     #activity_log .ss-activity {
-        max-height:none;
+        box-sizing:border-box;
+        height:100%;
+        max-height:100%!important;
+        overflow-y:auto;
+        overscroll-behavior:contain;
+    }
+    #human_decision {
+        height:100%!important;
+        min-height:0!important;
+        overflow:hidden!important;
+    }
+    #human_decision .ss-decision {
+        box-sizing:border-box;
+        height:100%;
+        max-height:100%!important;
+        overflow-y:auto;
+        overscroll-behavior:contain;
     }
 }
 @media(max-width:940px) {
     #chat_workspace { flex-direction:column; }
     #query_column { order:-1; }
-    #chat_history { height:240px!important; }
+    #chat_history { height:260px!important; }
     #original_sql .cm-editor { max-height:200px; }
     #chat_workspace > div { width:100%;min-width:0!important; }
     #activity_log .ss-activity { max-height:280px; }
@@ -254,6 +329,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
     .ss-pipeline { grid-template-columns:repeat(7,minmax(145px,1fr)); }
     .ss-hero p,.ss-eyebrow { display:none; }
     .ss-badge { margin:4px 4px 0 0; }
+    .ss-schema-direction { grid-template-columns:1fr; }
+    .ss-schema-arrow { transform:rotate(90deg); }
+    #review_actions { grid-template-columns:1fr; }
 }
 """
 
@@ -292,7 +370,8 @@ LAYOUT_JS = r"""
     };
     const observer = new ResizeObserver(schedule);
     ['workspace_header', 'conversation_toolbar', 'pipeline_rail', 'workspace_tabs',
-     'chat_input', 'original_sql'].forEach(id => {
+     'chat_input', 'original_sql', 'schema_direction', 'sql_import_row',
+     'migration_instructions_accordion', 'migration_actions'].forEach(id => {
         const element = document.getElementById(id);
         if (element) observer.observe(element);
     });
@@ -310,10 +389,15 @@ LAYOUT_JS = r"""
 
 
 def hero_html(environment: str = "Local") -> str:
+    environment_badges = "".join(
+        f"<span class='ss-badge'>● {html.escape(item.strip())}</span>"
+        for item in environment.split("|")
+        if item.strip()
+    )
     return f"""
     <div class='ss-hero'>
       <div><div class='ss-eyebrow'>SchemaShift • CMU Agentic AI Capstone</div>
       <h1>Schema migration workspace</h1>
       <p>Migrate SQL with deterministic validation, visible evidence, and review when needed.</p></div>
-      <div><span class='ss-badge'>● {environment}</span><span class='ss-badge'>Human review enabled</span></div>
+      <div>{environment_badges}<span class='ss-badge'>Human review enabled</span></div>
     </div>"""

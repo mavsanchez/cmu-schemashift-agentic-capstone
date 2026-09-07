@@ -14,7 +14,7 @@ from schemashift.mcp import tools
 
 from .activity import render_activity
 
-PANEL_NAMES = ("Context", "Memory", "Tools", "Graph", "Subagent", "Trace")
+PANEL_NAMES = ("Context", "Memory", "Tools", "Graph", "Sub-Agent", "Trace")
 
 
 def _escape(value: Any) -> str:
@@ -203,6 +203,67 @@ class InspectorPanels:
         except Exception as exc:
             return [], f"Recorded interactions unavailable: {exc}"
 
+    def _knowledge_library(self) -> str:
+        store = getattr(self.runtime, "knowledge_store", None)
+        if store is None:
+            return _empty("Knowledge library unavailable. Check the local retrieval connection.")
+        try:
+            documents = store.list_documents(limit=201)
+        except Exception as exc:
+            return _empty("Knowledge library could not be loaded.") + _details("Details", str(exc))
+        if not documents:
+            return _empty(
+                "No indexed documents yet. Add migration documents in Add Files and confirm "
+                "their roles to ingest them."
+            )
+        visible = documents[:200]
+        body = _empty(
+            f"{len(visible)} indexed documents"
+            + (" shown (first 200)." if len(documents) > 200 else ".")
+            + " Expand a document to inspect its metadata."
+        )
+        body += "<div class='ss-knowledge-list'>"
+        for document in visible:
+            record = _record(document)
+            count = record["chunk_count"]
+            metadata = record.get("metadata") or []
+            details = "".join(_fields(item) for item in metadata) or _empty("No metadata supplied.")
+            body += (
+                "<details><summary>"
+                + _escape(f"{record['document']} · {count} chunk{'s' if count != 1 else ''}")
+                + "</summary>"
+                + details
+                + "</details>"
+            )
+        return body + "</div>"
+
+    @staticmethod
+    def _knowledge_evidence(snapshot: Mapping[str, Any], state: Mapping[str, Any]) -> str:
+        evidence = snapshot.get("evidence") or []
+        if not evidence:
+            return _empty(
+                "No retrieved passages in the selected run's saved state yet."
+                if state.get("run_id")
+                else "Start or select a migration to see the passages retrieved for it."
+            )
+        body = _empty(f"{len(evidence)} passages retrieved for the selected migration.")
+        for index, hit in enumerate(evidence):
+            chunk = hit.get("chunk") or hit
+            title = str(chunk.get("document") or "Migration knowledge")
+            if chunk.get("heading"):
+                title += f" · {chunk['heading']}"
+            score = hit.get("score")
+            if isinstance(score, (int, float)):
+                title += f" · similarity {score:.3f}"
+            body += (
+                ("<details open>" if index == 0 else "<details>")
+                + f"<summary>{_escape(title)}</summary>"
+                + _code(chunk.get("text") or "No passage text available.")
+                + _details("Source metadata and score", hit)
+                + "</details>"
+            )
+        return body
+
     def render(self, state: Mapping[str, Any], chat: list[dict[str, str]]) -> tuple[str, ...]:
         snapshot, checkpoint_note = self._snapshot(state)
         records, record_note = self._messages(state)
@@ -263,9 +324,7 @@ class InspectorPanels:
             else "Semantic memory unavailable"
         )
         recalled = snapshot.get("memories") or []
-        memory_body = _card(
-            memory_status, _empty(getattr(self.runtime, "redis_detail", "") or checkpoint_note)
-        )
+        memory_body = _empty(memory_status)
         for hit in recalled:
             record = hit.get("memory", hit)
             memory_body += _card(
@@ -273,13 +332,17 @@ class InspectorPanels:
                 f"<p>{_escape(record.get('text', ''))}</p>" + _details("Provenance and score", hit),
             )
         if not recalled:
-            memory_body += _empty("No recalled memories in this run's checkpoint.")
+            memory_body += _empty("No learned facts recalled for the selected run yet.")
         writes = (snapshot.get("memory_candidate") or {}).get("writes") or []
         memory_body += _details(f"Memory write decisions · {len(writes)}", writes)
         memory = _panel(
             "Memory",
-            "Durable facts recalled for this run and memory writes from its reflection step.",
-            memory_body,
+            "Indexed migration documents, passages used in this run, and learned facts.",
+            "<div class='ss-inspector-grid ss-memory-grid'>"
+            + _card("Knowledge library", self._knowledge_library())
+            + _card("Used in this run", self._knowledge_evidence(snapshot, state))
+            + _card("Learned memory", memory_body)
+            + "</div>",
         )
 
         tool_records = [item for item in records if item.get("actor_type") == "tool"]
@@ -320,7 +383,7 @@ class InspectorPanels:
             + self._interactions(specialists, "No subagent has run in this migration yet."),
         )
         sub_panel = _panel(
-            "Subagent",
+            "Sub-Agent",
             "Isolated Migration and Validation specialists, scoped to the selected run.",
             sub_body,
         )

@@ -28,6 +28,17 @@ class KnowledgeSearchResult(BaseModel):
     distance: float = Field(ge=0.0)
 
 
+class KnowledgeDocument(BaseModel):
+    """Indexed document summary without embeddings or full chunk contents."""
+
+    model_config = ConfigDict(frozen=True)
+
+    document_id: str
+    document: str
+    chunk_count: int = Field(ge=1)
+    metadata: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class IngestionReport(BaseModel):
     model_config = ConfigDict(frozen=True)
 

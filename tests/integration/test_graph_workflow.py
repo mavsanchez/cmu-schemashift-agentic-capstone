@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -215,6 +216,8 @@ def test_parent_graph_happy_path_runs_each_isolated_specialist_once(tmp_path: Pa
     assert result["validation_invocation_count"] == 1
     assert Path(result["artifact_path"]).is_file()
     assert [name for name, _ in tools.calls].count("compare_results") == 1
+    migration_payload = json.loads(provider.calls[1].input[-1][1])
+    assert migration_payload["request"] == "Migrate the customer query."
 
 
 def test_failed_validation_is_returned_to_a_fresh_migration_invocation(tmp_path: Path) -> None:

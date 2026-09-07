@@ -23,6 +23,7 @@ class MigrationState(TypedDict, total=False):
     conversation_id: str
     session_id: str
     run_id: str
+    request: str
     original_sql: str
     old_schema: dict[str, Any]
     new_schema: dict[str, Any]

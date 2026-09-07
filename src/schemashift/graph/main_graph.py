@@ -303,6 +303,7 @@ def build_main_graph(runtime: OrchestratorRuntime, *, checkpointer: Any | None =
             "conversation_id": state["conversation_id"],
             "session_id": state["session_id"],
             "run_id": state["run_id"],
+            "request": state["request"],
             "original_sql": state["original_sql"],
             "old_schema": state.get("old_schema") or {},
             "new_schema": state.get("new_schema") or {},

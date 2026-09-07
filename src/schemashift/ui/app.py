@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import html
 from collections.abc import Mapping
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -28,6 +30,117 @@ ROLE_FIELD = {
     SourceRole.NEW_SCHEMA.value: "new_schema_source_id",
     SourceRole.SOURCE_SQL.value: "source_sql_source_id",
 }
+
+DEFAULT_MIGRATION_REQUEST = (
+    "Migrate the provided SQL to the target schema while preserving its intent and "
+    "result semantics. Preserve output names, types, null behavior, duplicate rows, "
+    "ordering semantics, and business meaning, then validate the result deterministically "
+    "with the available evidence."
+)
+
+
+def _registered_source_name(runtime: ApplicationRuntime, source_id: str) -> str:
+    """Resolve a display name from the controlled registry without exposing a path."""
+
+    if not source_id:
+        return ""
+    getter = getattr(runtime.registry, "get_source", None)
+    if not callable(getter):
+        return ""
+    try:
+        source = getter(source_id)
+    except (LookupError, TypeError, ValueError):
+        return ""
+    if isinstance(source, Mapping):
+        name = source.get("original_name") or source.get("filename")
+        path = source.get("path") or source.get("local_path")
+    else:
+        name = getattr(source, "original_name", None)
+        path = getattr(source, "path", None) or getattr(source, "local_path", None)
+    return Path(str(name or path)).name if name or path else ""
+
+
+def _schema_display_name(state: Mapping[str, Any], side: str) -> str:
+    """Return a schema label from the selected source and database state."""
+
+    source_id = str(state.get(f"{side}_schema_source_id") or "").strip()
+    if not source_id:
+        return "Not selected"
+    value = str(state.get(f"{side}_schema_name") or "").strip()
+    if not value:
+        value = str(state.get(f"{side}_database_id") or source_id).strip()
+    filename = Path(value).name
+    if Path(filename).suffix.casefold() in {".sql", ".json"}:
+        return Path(filename).stem
+    return filename
+
+
+def _schema_direction_html(state: Mapping[str, Any]) -> str:
+    source = html.escape(_schema_display_name(state, "old"))
+    target = html.escape(_schema_display_name(state, "new"))
+    return (
+        "<section class='ss-schema-direction' aria-label='Schema migration direction'>"
+        "<div class='ss-schema-side'><span>Source schema</span>"
+        f"<strong>{source}</strong></div>"
+        "<span class='ss-schema-arrow' aria-hidden='true'>&rarr;</span>"
+        "<div class='ss-schema-side ss-schema-target'><span>Target schema</span>"
+        f"<strong>{target}</strong></div></section>"
+    )
+
+
+def _imported_sql_html(state: Mapping[str, Any]) -> str:
+    name = str(state.get("imported_sql_name") or "").strip()
+    if name:
+        return (
+            "<div class='ss-import-state ss-imported'>"
+            "<span aria-hidden='true'>&#128196;</span><span>Imported:</span>"
+            f"<strong>{html.escape(Path(name).name)}</strong></div>"
+        )
+    if str(state.get("original_sql") or "").strip():
+        return (
+            "<div class='ss-import-state'><span aria-hidden='true'>&#10003;</span>"
+            "<span>SQL is ready and remains editable.</span></div>"
+        )
+    return (
+        "<div class='ss-import-state'><span aria-hidden='true'>&#8613;</span>"
+        "<span>Paste SQL below or import a local .sql file.</span></div>"
+    )
+
+
+def _clear_sql_update(state: Mapping[str, Any]) -> Any:
+    return gr.update(
+        visible=True,
+        interactive=bool(str(state.get("original_sql") or "").strip())
+        and not bool(state.get("busy")),
+    )
+
+
+def _request_changes_update(state: Mapping[str, Any]) -> Any:
+    review = bool(state.get("review"))
+    return gr.update(visible=True, interactive=review and not bool(state.get("busy")))
+
+
+def _compose_migration_request(instructions: str | None) -> str:
+    """Use the autonomous semantic-preservation objective unless guidance is supplied."""
+
+    supplied = str(instructions or "").strip()
+    if not supplied or supplied.casefold().startswith("remember:"):
+        # Remember statements must remain the leading request so the explicit
+        # durable-memory policy can recognize and store only the user's fact.
+        return supplied or DEFAULT_MIGRATION_REQUEST
+    return f"{DEFAULT_MIGRATION_REQUEST}\n\nAdditional migration instructions:\n{supplied}"
+
+
+def _read_source_sql(runtime: ApplicationRuntime, source_id: str, fallback: str = "") -> str:
+    result = runtime.tool_gateway.call_tool("read_source", {"source_id": source_id})
+    if not result.get("ok", True):
+        error = result.get("error") or "The confirmed SQL source could not be read"
+        if isinstance(error, Mapping):
+            error = error.get("message") or error
+        raise ValueError(str(error))
+    content = result.get("content")
+    content = content if isinstance(content, Mapping) else {}
+    return str(content.get("text") or result.get("text") or fallback)
 
 
 def _conversation_choices(
@@ -132,6 +245,8 @@ def _fresh_state(
 ) -> dict[str, Any]:
     old_database = "customer_v1" if _has_database(runtime, "customer_v1") else ""
     new_database = "customer_v2" if _has_database(runtime, "customer_v2") else ""
+    old_schema_source_id = "customer_v1_schema"
+    new_schema_source_id = "customer_v2_schema"
     return {
         "conversation_id": str(conversation_id),
         "session_id": str(session_id),
@@ -142,11 +257,15 @@ def _fresh_state(
         "busy": False,
         "resuming_review_id": None,
         "uploaded_input_mode": False,
-        "old_schema_source_id": "customer_v1_schema",
-        "new_schema_source_id": "customer_v2_schema",
+        "old_schema_source_id": old_schema_source_id,
+        "new_schema_source_id": new_schema_source_id,
         "source_sql_source_id": "customer_active_sql",
         "old_database_id": old_database,
         "new_database_id": new_database,
+        "old_schema_name": _registered_source_name(runtime, old_schema_source_id),
+        "new_schema_name": _registered_source_name(runtime, new_schema_source_id),
+        "imported_sql_name": "",
+        "migration_instructions": "",
         "original_sql": _default_sql(runtime),
     }
 
@@ -211,12 +330,23 @@ def _restore_state(
             "new_schema_source_id",
             "old_database_id",
             "new_database_id",
+            "old_schema_name",
+            "new_schema_name",
         ):
             state[key] = ""
+    latest_source_sql: Mapping[str, Any] | None = None
     for source in scoped_sources:
         role = str(source.get("role") or "")
         if role in ROLE_FIELD and source.get("status") in {"confirmed", "indexed"}:
             state[ROLE_FIELD[role]] = str(source["source_id"])
+            original_name = str(source.get("original_name") or "").strip()
+            if role == SourceRole.OLD_SCHEMA.value:
+                state["old_schema_name"] = original_name
+            elif role == SourceRole.NEW_SCHEMA.value:
+                state["new_schema_name"] = original_name
+            elif role == SourceRole.SOURCE_SQL.value:
+                state["imported_sql_name"] = original_name
+                latest_source_sql = source
         metadata = source.get("metadata") or {}
         database_id = str(metadata.get("database_id") or "")
         if role == SourceRole.OLD_DATA.value and database_id:
@@ -224,6 +354,8 @@ def _restore_state(
         elif role == SourceRole.NEW_DATA.value and database_id:
             state["new_database_id"] = database_id
     chat: list[dict[str, str]] = []
+    latest_message_sql = ""
+    latest_message_sql_time = ""
     for message in history["messages"]:
         role = str(message.get("role") or "")
         if role == "user":
@@ -231,26 +363,47 @@ def _restore_state(
             stored_sql = str((message.get("metadata") or {}).get("original_sql") or "")
             if stored_sql:
                 state["original_sql"] = stored_sql
+                latest_message_sql = stored_sql
+                latest_message_sql_time = str(message.get("created_at") or "")
         elif role == "assistant":
             chat.append({"role": "assistant", "content": str(message["content"])})
         elif role == "human_decision":
             metadata = message.get("metadata") or {}
             feedback = str(metadata.get("reviewer_feedback") or "").strip()
-            decision = str(message.get("content") or "Decision").title()
+            raw_decision = str(message.get("content") or "Decision")
+            decision = (
+                "Request changes"
+                if raw_decision == "reject" and feedback
+                else raw_decision.title()
+            )
             chat.append(
                 {
                     "role": "user",
                     "content": f"{decision} candidate" + (f": {feedback}" if feedback else "."),
                 }
             )
+    if latest_source_sql is not None:
+        source_time = str(latest_source_sql.get("created_at") or "")
+        source_is_newer = bool(source_time and source_time > latest_message_sql_time)
+        if not latest_message_sql or source_is_newer:
+            with suppress(OSError, TypeError, ValueError):
+                state["original_sql"] = _read_source_sql(
+                    runtime,
+                    str(latest_source_sql["source_id"]),
+                    state.get("original_sql", ""),
+                )
     return state, chat
 
 
 def _source_summary(state: Mapping[str, Any]) -> str:
+    old_schema = state.get("old_schema_name") or state.get("old_schema_source_id") or "missing"
+    new_schema = state.get("new_schema_name") or state.get("new_schema_source_id") or "missing"
+    source_sql = state.get("imported_sql_name") or state.get("source_sql_source_id") or "manual"
     return (
         "**Confirmed run inputs**  \n"
-        f"Old schema: `{state.get('old_schema_source_id') or 'missing'}`  \n"
-        f"New schema: `{state.get('new_schema_source_id') or 'missing'}`  \n"
+        f"Old schema: `{old_schema}`  \n"
+        f"New schema: `{new_schema}`  \n"
+        f"Original SQL: `{source_sql}`  \n"
         f"Old data: `{state.get('old_database_id') or 'missing'}`  \n"
         f"New data: `{state.get('new_database_id') or 'missing'}`"
     )
@@ -264,14 +417,14 @@ def _review_updates(state: Mapping[str, Any]) -> tuple[Any, Any]:
         payload = review.get("payload")
         approvable = bool(isinstance(payload, Mapping) and payload.get("approvable"))
     return (
-        gr.update(visible=bool(review), interactive=bool(review) and approvable and not busy),
-        gr.update(visible=bool(review), interactive=bool(review) and not busy),
+        gr.update(visible=True, interactive=bool(review) and approvable and not busy),
+        gr.update(visible=True, interactive=bool(review) and not busy),
     )
 
 
 def _review_feedback_update(state: Mapping[str, Any]) -> Any:
     review = bool(state.get("review"))
-    return gr.update(visible=review, interactive=review and not bool(state.get("busy")))
+    return gr.update(visible=True, interactive=review and not bool(state.get("busy")))
 
 
 def _run_view(
@@ -298,6 +451,11 @@ def _run_view(
         artifacts[0][1] if artifacts else None,
         _review_feedback_update(state),
         *state["inspector_views"],
+        _schema_direction_html(state),
+        _imported_sql_html(state),
+        _clear_sql_update(state),
+        _request_changes_update(state),
+        render_decision(state.get("review")),
     )
 
 
@@ -401,6 +559,14 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             None,
             _review_feedback_update(state),
             *inspectors.render(state, []),
+            _schema_direction_html(state),
+            _imported_sql_html(state),
+            _clear_sql_update(state),
+            _request_changes_update(state),
+            render_decision(None),
+            "",
+            "",
+            gr.update(value=None),
         )
 
     def new_conversation():
@@ -431,6 +597,14 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             artifacts[0][1] if artifacts else None,
             _review_feedback_update(state),
             *inspectors.render(state, chat),
+            _schema_direction_html(state),
+            _imported_sql_html(state),
+            _clear_sql_update(state),
+            _request_changes_update(state),
+            render_decision(state.get("review")),
+            "",
+            "",
+            gr.update(value=None),
         )
 
     def refresh_conversations(state: Mapping[str, Any]):
@@ -455,8 +629,92 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             "Review every inferred role, correct it if needed, then confirm.",
         )
 
+    def import_sql_file(file: Any, state: dict[str, Any]):
+        if not file:
+            raise gr.Error("Choose a .sql file to import.")
+        path = Path(getattr(file, "name", file))
+        if path.suffix.casefold() != ".sql":
+            raise gr.Error("Import SQL accepts .sql files.")
+        try:
+            staged = application.ingestion.stage_files(
+                UUID(state["conversation_id"]),
+                UUID(state["session_id"]),
+                [path],
+            )
+            if len(staged) != 1:
+                raise ValueError("SchemaShift could not stage the selected SQL file")
+            row = staged[0].table_row()
+            source_id = str(row[0])
+            original_name = str(row[1] or path.name)
+            application.ingestion.confirm_sources(
+                UUID(state["conversation_id"]),
+                UUID(state["session_id"]),
+                [{"source_id": source_id, "role": SourceRole.SOURCE_SQL.value}],
+            )
+            sql = _read_source_sql(application, source_id)
+        except (OSError, TypeError, ValueError) as exc:
+            raise gr.Error(str(exc)) from exc
+        state["source_sql_source_id"] = source_id
+        state["imported_sql_name"] = original_name
+        state["original_sql"] = sql
+        state["inspector_dirty"] = True
+        return (
+            state,
+            sql,
+            _imported_sql_html(state),
+            _clear_sql_update(state),
+            _source_summary(state),
+            _schema_direction_html(state),
+            gr.update(value=None),
+        )
+
+    def clear_imported_sql(state: dict[str, Any]):
+        state["source_sql_source_id"] = ""
+        state["imported_sql_name"] = ""
+        state["original_sql"] = ""
+        state["inspector_dirty"] = True
+        return (
+            state,
+            "",
+            _imported_sql_html(state),
+            _clear_sql_update(state),
+            _source_summary(state),
+            gr.update(value=None),
+        )
+
+    def add_chat_context(
+        message: str,
+        state: dict[str, Any],
+        chat: list[dict[str, str]] | None,
+        instructions: str,
+    ):
+        text = str(message or "").strip()
+        if not text:
+            return state, list(chat or []), "", instructions
+        updated_chat = list(chat or [])
+        updated_chat.append({"role": "user", "content": text})
+        updated_chat.append(
+            {
+                "role": "assistant",
+                "content": (
+                    "Added to the optional context for the next migration. "
+                    "You can edit it in SQL Migration before running."
+                ),
+            }
+        )
+        current = str(instructions or "").strip()
+        combined = f"{current}\n{text}".strip() if current else text
+        state["migration_instructions"] = combined
+        state["inspector_dirty"] = True
+        return state, updated_chat, "", combined
+
     def confirm_uploads(table: Any, state: dict[str, Any]):
         rows = table.values.tolist() if hasattr(table, "values") else list(table or [])
+        names_by_id = {
+            str(row[0]): str(row[1])
+            for row in rows
+            if row and len(row) > 1 and row[0]
+        }
         selections = [
             {
                 "source_id": row[0],
@@ -472,6 +730,9 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                 "No staged sources to confirm.",
                 _source_summary(state),
                 state.get("original_sql", ""),
+                _schema_direction_html(state),
+                _imported_sql_html(state),
+                _clear_sql_update(state),
             )
         confirmed = application.ingestion.confirm_sources(
             UUID(state["conversation_id"]),
@@ -491,6 +752,8 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
                     "new_schema_source_id",
                     "old_database_id",
                     "new_database_id",
+                    "old_schema_name",
+                    "new_schema_name",
                 ):
                     state[key] = ""
             state["uploaded_input_mode"] = True
@@ -501,28 +764,34 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             role = item.role.value if item.role else ""
             if role in ROLE_FIELD:
                 state[ROLE_FIELD[role]] = str(item.source_id)
+            if role == SourceRole.OLD_SCHEMA.value:
+                state["old_schema_name"] = names_by_id.get(str(item.source_id), "")
+            elif role == SourceRole.NEW_SCHEMA.value:
+                state["new_schema_name"] = names_by_id.get(str(item.source_id), "")
             if role == SourceRole.SOURCE_SQL.value:
-                result = application.tool_gateway.call_tool(
-                    "read_source", {"source_id": str(item.source_id)}
-                )
-                content = result.get("content")
-                content = content if isinstance(content, Mapping) else {}
-                state["original_sql"] = str(
-                    content.get("text") or result.get("text") or state.get("original_sql", "")
+                state["imported_sql_name"] = names_by_id.get(str(item.source_id), "")
+                state["original_sql"] = _read_source_sql(
+                    application,
+                    str(item.source_id),
+                    str(state.get("original_sql", "")),
                 )
         databases = application.ingestion.build_data_databases(
             UUID(state["conversation_id"]), UUID(state["session_id"])
         )
         state.update(databases)
+        state["inspector_dirty"] = True
         return (
             state,
             f"Confirmed {len(confirmed)} source(s).",
             _source_summary(state),
             state.get("original_sql", ""),
+            _schema_direction_html(state),
+            _imported_sql_html(state),
+            _clear_sql_update(state),
         )
 
     def run_migration(
-        prompt: str,
+        instructions: str,
         original_sql: str,
         state: dict[str, Any],
         chat: list[dict[str, str]] | None,
@@ -541,18 +810,19 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         missing = [name for name in required if not state.get(name)]
         if missing:
             raise gr.Error("Confirm both schemas and paired old/new datasets first.")
-        prompt = prompt.strip()
         original_sql = original_sql.strip()
-        if not prompt or not original_sql:
-            raise gr.Error("A request and original SELECT query are required.")
-        chat.append({"role": "user", "content": prompt})
+        if not original_sql:
+            raise gr.Error("Original SQL is required.")
+        request_text = _compose_migration_request(instructions)
+        chat.append({"role": "user", "content": request_text})
         state["busy"] = True
         state["original_sql"] = original_sql
+        state["migration_instructions"] = str(instructions or "").strip()
         state.pop("run_id", None)
         state["inspector_dirty"] = True
         yield _run_view(application, state, chat, inspectors)
         request = MigrationRequest(
-            request=prompt,
+            request=request_text,
             original_sql=original_sql,
             old_schema_source_id=state["old_schema_source_id"],
             new_schema_source_id=state["new_schema_source_id"],
@@ -590,6 +860,8 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         feedback: str,
         state: dict[str, Any],
         chat: list[dict[str, str]] | None,
+        *,
+        action_label: str | None = None,
     ):
         chat = list(chat or [])
         review = state.get("review")
@@ -598,10 +870,11 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         state["busy"] = True
         state["resuming_review_id"] = str(review["review_id"])
         state["inspector_dirty"] = True
+        display_choice = action_label or choice.title()
         chat.append(
             {
                 "role": "user",
-                "content": f"{choice.title()} candidate"
+                "content": f"{display_choice} candidate"
                 + (f": {feedback.strip()}" if feedback.strip() else "."),
             }
         )
@@ -625,17 +898,28 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             if (
                 chat
                 and chat[-1].get("role") == "user"
-                and chat[-1].get("content", "").startswith(choice.title())
+                and chat[-1].get("content", "").startswith(display_choice)
             ):
                 chat.pop()
             _mark_ui_failure(state, label="Review resume failed", detail=str(exc))
             yield _run_view(application, state, chat, inspectors)
 
     def approve(feedback: str, state: dict[str, Any], chat: Any):
-        yield from review_decision("approve", feedback, state, chat)
+        yield from review_decision("approve", feedback, state, chat, action_label="Approve")
 
-    def reject(feedback: str, state: dict[str, Any], chat: Any):
-        yield from review_decision("reject", feedback, state, chat)
+    def reject(_feedback: str, state: dict[str, Any], chat: Any):
+        yield from review_decision("reject", "", state, chat, action_label="Reject")
+
+    def request_changes(feedback: str, state: dict[str, Any], chat: Any):
+        if not str(feedback or "").strip():
+            raise gr.Error("Describe the requested changes before resuming the agent.")
+        yield from review_decision(
+            "reject",
+            feedback,
+            state,
+            chat,
+            action_label="Request changes",
+        )
 
     def select_artifact(path: str, state: Mapping[str, Any]):
         if not path:
@@ -671,59 +955,168 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         pipeline = gr.HTML(render_pipeline(), elem_id="pipeline_rail")
         with gr.Tabs(elem_id="workspace_tabs"):
             with gr.Tab("Chat"), gr.Row(elem_id="chat_workspace"):
-                with gr.Column(scale=5, min_width=320, elem_id="conversation_column"):
+                with gr.Column(
+                    scale=3,
+                    min_width=280,
+                    elem_id="conversation_column",
+                    elem_classes="ss-workspace-card",
+                ):
+                    gr.HTML(
+                        "<div class='ss-panel-heading'><span aria-hidden='true'>&#128172;</span>"
+                        "<div><h2>Conversation</h2><p>Ask questions or add business context.</p>"
+                        "</div></div>"
+                    )
                     chatbot = gr.Chatbot(
-                        label="Migration conversation",
-                        placeholder="Describe your migration and select Migrate SQL to begin.",
+                        label="Conversation",
+                        show_label=False,
+                        placeholder="Start a conversation about this migration.",
                         height="var(--ss-workspace-height)",
                         elem_id="chat_history",
                     )
-                with gr.Column(scale=4, min_width=320, elem_id="query_column"):
-                    prompt = gr.Textbox(
-                        label="Migration request",
-                        placeholder="Describe how this query should work on the new schema…",
-                        lines=1,
-                        max_lines=3,
-                        elem_id="chat_input",
+                    with gr.Row(elem_id="conversation_composer"):
+                        chat_message = gr.Textbox(
+                            label="Conversation message",
+                            show_label=False,
+                            placeholder="Ask a question or add context...",
+                            lines=1,
+                            max_lines=4,
+                            scale=5,
+                            elem_id="chat_input",
+                        )
+                        chat_send = gr.Button(
+                            "Send",
+                            size="sm",
+                            scale=1,
+                            min_width=58,
+                            elem_id="chat_send_btn",
+                        )
+                with gr.Column(
+                    scale=5,
+                    min_width=400,
+                    elem_id="query_column",
+                    elem_classes=["ss-workspace-card", "ss-migration-card"],
+                ):
+                    gr.HTML(
+                        "<div class='ss-panel-heading ss-migration-heading'>"
+                        "<span aria-hidden='true'>&#128451;</span><div><h2>SQL Migration</h2>"
+                        "<p>SchemaShift preserves the original query's behavior against "
+                        "the target schema using deterministic validation and "
+                        "evidence-based migration.</p></div></div>"
                     )
+                    schema_direction = gr.HTML(
+                        _schema_direction_html({}), elem_id="schema_direction"
+                    )
+                    with gr.Row(elem_id="sql_import_row"):
+                        imported_sql_state = gr.HTML(
+                            _imported_sql_html({}), elem_id="sql_import_state"
+                        )
+                        clear_sql_button = gr.Button(
+                            "Clear SQL",
+                            size="sm",
+                            interactive=False,
+                            elem_id="clear_sql_btn",
+                        )
                     original_sql = gr.Code(
-                        label="Original SELECT SQL",
+                        label="Original SQL",
                         language="sql",
                         lines=8,
                         elem_id="original_sql",
                     )
-                    send = gr.Button(
-                        "Migrate SQL", variant="primary", size="sm", elem_id="send_btn"
+                    with gr.Accordion(
+                        "Add migration instructions (optional)",
+                        open=False,
+                        elem_id="migration_instructions_accordion",
+                    ):
+                        migration_instructions = gr.Textbox(
+                            label="Migration instructions (optional)",
+                            placeholder=(
+                                "For example: Exclude suspended customers or preserve "
+                                "legacy column aliases."
+                            ),
+                            lines=2,
+                            max_lines=5,
+                            elem_id="migration_instructions",
+                        )
+                    with gr.Row(elem_id="migration_actions"):
+                        import_sql = gr.UploadButton(
+                            "Import SQL",
+                            file_types=[".sql"],
+                            file_count="single",
+                            type="filepath",
+                            variant="secondary",
+                            size="sm",
+                            scale=1,
+                            elem_id="import_sql_btn",
+                        )
+                        send = gr.Button(
+                            "▶ Migrate SQL",
+                            variant="primary",
+                            size="sm",
+                            scale=2,
+                            elem_id="send_btn",
+                        )
+                    gr.HTML(
+                        "<p class='ss-note'>The agent will migrate, validate, and show "
+                        "evidence before writing an artifact.</p>"
                     )
                 with gr.Column(
-                    scale=3, min_width=240, elem_id="activity_column", elem_classes="ss-panel"
+                    scale=3,
+                    min_width=280,
+                    elem_id="activity_column",
+                    elem_classes="ss-workspace-card",
                 ):
-                    gr.Markdown("### Agent Activity")
+                    gr.HTML(
+                        "<div class='ss-panel-heading'><span aria-hidden='true'>&#9889;</span>"
+                        "<div><h2>Agent Activity</h2><p>Live backend workflow events.</p>"
+                        "</div><span class='ss-live-badge'>Live</span></div>"
+                    )
                     activity = gr.HTML(render_activity([]), elem_id="activity_log")
+                    gr.HTML(
+                        "<div class='ss-panel-heading ss-decision-heading'>"
+                        "<span aria-hidden='true'>&#128100;</span><div><h2>Human Decision</h2>"
+                        "<p>Review only when evidence requires judgment.</p></div></div>"
+                    )
+                    decision_panel = gr.HTML(render_decision(None), elem_id="human_decision")
+                    reviewer_feedback = gr.Textbox(
+                        label="Reviewer feedback",
+                        placeholder="Explain requested changes or record approval context...",
+                        lines=2,
+                        max_lines=4,
+                        visible=True,
+                        interactive=False,
+                        elem_id="reviewer_feedback",
+                    )
+                    with gr.Row(elem_id="review_actions"):
+                        approve_button = gr.Button(
+                            "Approve",
+                            size="sm",
+                            visible=True,
+                            interactive=False,
+                            elem_id="approve_btn",
+                        )
+                        reject_button = gr.Button(
+                            "Reject",
+                            size="sm",
+                            visible=True,
+                            interactive=False,
+                            elem_id="reject_btn",
+                        )
+                        request_changes_button = gr.Button(
+                            "Request changes",
+                            size="sm",
+                            visible=True,
+                            interactive=False,
+                            elem_id="request_changes_btn",
+                        )
             with gr.Tab("Human Decision"):
-                decision_panel = gr.HTML(render_decision(None), elem_id="human_decision")
-                reviewer_feedback = gr.Textbox(
-                    label="Reviewer feedback",
-                    placeholder="Explain a rejection or record approval context…",
-                    lines=2,
-                    max_lines=4,
-                    visible=False,
-                    interactive=False,
-                    elem_id="reviewer_feedback",
+                gr.Markdown(
+                    "## Human Decision\n"
+                    "Inspect the complete candidate and evidence here. Decision controls "
+                    "remain visible beside Agent Activity in the Chat workspace."
                 )
-                with gr.Row():
-                    approve_button = gr.Button(
-                        "Approve displayed candidate",
-                        size="sm",
-                        visible=False,
-                        elem_id="approve_btn",
-                    )
-                    reject_button = gr.Button(
-                        "Reject / request revision",
-                        size="sm",
-                        visible=False,
-                        elem_id="reject_btn",
-                    )
+                decision_detail_panel = gr.HTML(
+                    render_decision(None), elem_id="human_decision_detail"
+                )
             with gr.Tab("Add Files"):
                 upload = gr.File(
                     label="SQL, schema, migration knowledge, CSV, or Parquet",
@@ -790,6 +1183,14 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             artifact_download,
             reviewer_feedback,
             *inspector_outputs,
+            schema_direction,
+            imported_sql_state,
+            clear_sql_button,
+            request_changes_button,
+            decision_detail_panel,
+            migration_instructions,
+            chat_message,
+            import_sql,
         ]
         run_outputs = [
             browser_state,
@@ -804,6 +1205,11 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             artifact_download,
             reviewer_feedback,
             *inspector_outputs,
+            schema_direction,
+            imported_sql_state,
+            clear_sql_button,
+            request_changes_button,
+            decision_detail_panel,
         ]
         demo.load(initialize, outputs=initialization_outputs, api_name="initialize")
         new_button.click(
@@ -828,23 +1234,65 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
         confirm_button.click(
             confirm_uploads,
             inputs=[role_table, browser_state],
-            outputs=[browser_state, upload_status, source_summary, original_sql],
+            outputs=[
+                browser_state,
+                upload_status,
+                source_summary,
+                original_sql,
+                schema_direction,
+                imported_sql_state,
+                clear_sql_button,
+            ],
             api_name="confirm_sources",
         ).then(
             refresh_conversations, inputs=browser_state, outputs=conversation, api_name=False
         )
-        send.click(
-            run_migration,
-            inputs=[prompt, original_sql, browser_state, chatbot],
-            outputs=run_outputs,
-            api_name="send",
+        import_sql.upload(
+            import_sql_file,
+            inputs=[import_sql, browser_state],
+            outputs=[
+                browser_state,
+                original_sql,
+                imported_sql_state,
+                clear_sql_button,
+                source_summary,
+                schema_direction,
+                import_sql,
+            ],
+            api_name="import_sql",
         ).then(
             refresh_conversations, inputs=browser_state, outputs=conversation, api_name=False
         )
-        prompt.submit(
+        clear_sql_button.click(
+            clear_imported_sql,
+            inputs=browser_state,
+            outputs=[
+                browser_state,
+                original_sql,
+                imported_sql_state,
+                clear_sql_button,
+                source_summary,
+                import_sql,
+            ],
+            api_name="clear_imported_sql",
+        )
+        chat_send.click(
+            add_chat_context,
+            inputs=[chat_message, browser_state, chatbot, migration_instructions],
+            outputs=[browser_state, chatbot, chat_message, migration_instructions],
+            api_name="add_chat_context",
+        )
+        chat_message.submit(
+            add_chat_context,
+            inputs=[chat_message, browser_state, chatbot, migration_instructions],
+            outputs=[browser_state, chatbot, chat_message, migration_instructions],
+            api_name=False,
+        )
+        send.click(
             run_migration,
-            inputs=[prompt, original_sql, browser_state, chatbot],
+            inputs=[migration_instructions, original_sql, browser_state, chatbot],
             outputs=run_outputs,
+            api_name="send",
         ).then(
             refresh_conversations, inputs=browser_state, outputs=conversation, api_name=False
         )
@@ -861,6 +1309,14 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
             inputs=[reviewer_feedback, browser_state, chatbot],
             outputs=run_outputs,
             api_name="reject_review",
+        ).then(
+            refresh_conversations, inputs=browser_state, outputs=conversation, api_name=False
+        )
+        request_changes_button.click(
+            request_changes,
+            inputs=[reviewer_feedback, browser_state, chatbot],
+            outputs=run_outputs,
+            api_name="request_changes_review",
         ).then(
             refresh_conversations, inputs=browser_state, outputs=conversation, api_name=False
         )

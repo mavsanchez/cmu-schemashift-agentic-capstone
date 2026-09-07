@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
+from contextlib import closing
+from contextvars import copy_context
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -249,18 +252,39 @@ class MigrationService:
         self,
         context: RunContext,
         graph_input: dict[str, Any] | Command,
+    ) -> Generator[StreamEnvelope, None, None]:
+        # Gradio advances synchronous generators in separate worker contexts.
+        # Keep graph execution and cleanup in one context, yielding only after
+        # leaving it so run instrumentation never leaks into the UI caller.
+        execution_context = copy_context()
+        stream = self._stream_graph_in_context(context, graph_input)
+        try:
+            while True:
+                try:
+                    envelope = execution_context.run(next, stream)
+                except StopIteration:
+                    return
+                yield envelope
+        finally:
+            execution_context.run(stream.close)
+
+    def _stream_graph_in_context(
+        self,
+        context: RunContext,
+        graph_input: dict[str, Any] | Command,
     ):
         config = {"configurable": {"thread_id": str(context.conversation_id)}}
         latest_state: dict[str, Any] = {}
         artifact_event: dict[str, Any] | None = None
         finalized = False
         review_seen = False
-        with instrument_run(context):
-            stream = self.graph.stream(
+        with instrument_run(context), closing(
+            self.graph.stream(
                 graph_input,
                 config=config,
                 stream_mode=["custom", "values"],
             )
+        ) as stream:
             for item in stream:
                 if isinstance(item, tuple) and len(item) == 2:
                     mode, chunk = item

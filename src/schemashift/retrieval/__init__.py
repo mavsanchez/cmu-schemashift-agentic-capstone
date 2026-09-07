@@ -12,7 +12,7 @@ from .chunking import (
 from .embeddings import EmbeddingDimensionError, embed_text, embed_texts, validate_embedding
 from .ingest import SUPPORTED_KNOWLEDGE_SUFFIXES, KnowledgeIngestor
 from .redis_vector import KnowledgeStore, RedisKnowledgeStore
-from .schemas import IngestionReport, KnowledgeChunk, KnowledgeSearchResult
+from .schemas import IngestionReport, KnowledgeChunk, KnowledgeDocument, KnowledgeSearchResult
 
 __all__ = [
     "DEFAULT_MAX_CHARS",
@@ -20,6 +20,7 @@ __all__ = [
     "EmbeddingDimensionError",
     "IngestionReport",
     "KnowledgeChunk",
+    "KnowledgeDocument",
     "KnowledgeIngestor",
     "KnowledgeSearchResult",
     "KnowledgeStore",

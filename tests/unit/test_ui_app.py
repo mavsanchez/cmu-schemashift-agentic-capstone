@@ -10,7 +10,14 @@ import gradio as gr
 import pytest
 
 from schemashift.domain import SourceRole
-from schemashift.ui.app import _apply_stream_event, _conversation_choices, build_app
+from schemashift.ui.app import (
+    DEFAULT_MIGRATION_REQUEST,
+    _apply_stream_event,
+    _compose_migration_request,
+    _conversation_choices,
+    _schema_direction_html,
+    build_app,
+)
 from schemashift.ui.inspectors import PANEL_NAMES, InspectorPanels
 from schemashift.ui.pipeline import empty_pipeline
 
@@ -348,13 +355,22 @@ def test_blocks_configuration_has_required_controls_and_named_apis(
         "pipeline_rail",
         "chat_history",
         "chat_input",
+        "chat_send_btn",
+        "schema_direction",
+        "sql_import_state",
+        "clear_sql_btn",
         "original_sql",
+        "migration_instructions_accordion",
+        "migration_instructions",
+        "import_sql_btn",
         "send_btn",
         "activity_log",
         "human_decision",
+        "human_decision_detail",
         "reviewer_feedback",
         "approve_btn",
         "reject_btn",
+        "request_changes_btn",
         "source_upload",
         "role_confirmation",
         "confirm_files_btn",
@@ -376,15 +392,30 @@ def test_blocks_configuration_has_required_controls_and_named_apis(
         "load_conversation",
         "upload_sources",
         "confirm_sources",
+        "import_sql",
+        "clear_imported_sql",
+        "add_chat_context",
         "send",
         "approve_review",
         "reject_review",
+        "request_changes_review",
         "download_artifact",
     } <= api_names
-    assert components["approve_btn"]["props"]["visible"] is False
-    assert components["reject_btn"]["props"]["visible"] is False
-    assert components["reviewer_feedback"]["props"]["visible"] is False
+    assert components["approve_btn"]["props"]["visible"] is True
+    assert components["approve_btn"]["props"]["interactive"] is False
+    assert components["reject_btn"]["props"]["visible"] is True
+    assert components["reject_btn"]["props"]["interactive"] is False
+    assert components["request_changes_btn"]["props"]["visible"] is True
+    assert components["request_changes_btn"]["props"]["interactive"] is False
+    assert components["reviewer_feedback"]["props"]["visible"] is True
     assert components["reviewer_feedback"]["props"]["interactive"] is False
+    assert components["migration_instructions_accordion"]["props"]["open"] is False
+    assert components["import_sql_btn"]["props"]["file_types"] == [".sql"]
+    assert components["send_btn"]["props"]["variant"] == "primary"
+    assert all(
+        item.get("props", {}).get("label") != "Migration request"
+        for item in config["components"]
+    )
     assert components["source_upload"]["props"]["file_types"] == [
         ".sql",
         ".md",
@@ -393,6 +424,37 @@ def test_blocks_configuration_has_required_controls_and_named_apis(
         ".parquet",
     ]
     assert components["role_confirmation"]["props"]["interactive"] is True
+
+
+def test_default_migration_request_is_autonomous_and_instructions_are_optional() -> None:
+    assert _compose_migration_request("") == DEFAULT_MIGRATION_REQUEST
+    assert "preserving its intent and result semantics" in DEFAULT_MIGRATION_REQUEST
+    with_instructions = _compose_migration_request("  Preserve a legacy alias.  ")
+    assert with_instructions.startswith(DEFAULT_MIGRATION_REQUEST)
+    assert with_instructions.endswith(
+        "Additional migration instructions:\nPreserve a legacy alias."
+    )
+    assert _compose_migration_request("Remember: retain integer cents") == (
+        "Remember: retain integer cents"
+    )
+
+
+def test_schema_direction_uses_selected_state_and_escapes_names() -> None:
+    rendered = _schema_direction_html(
+        {
+            "old_schema_source_id": "old-source",
+            "new_schema_source_id": "new-source",
+            "old_schema_name": "<legacy>.sql",
+            "new_schema_name": "current.json",
+        }
+    )
+
+    assert "Source schema" in rendered
+    assert "Target schema" in rendered
+    assert "&lt;legacy&gt;" in rendered
+    assert "<legacy>" not in rendered
+    assert ">current<" in rendered
+    assert "Not selected" in _schema_direction_html({})
 
 
 def test_load_conversation_opens_new_session_and_restores_durable_state(
@@ -434,6 +496,43 @@ def test_load_conversation_opens_new_session_and_restores_durable_state(
     assert artifact_update["value"] == fake_application._artifact.local_path
     assert "known differences" not in artifact_update["choices"][0][0]
     assert selected_artifact == fake_application._artifact.local_path
+
+
+def test_reload_restores_an_imported_sql_source_without_creating_a_run(
+    fake_application: Any,
+) -> None:
+    original_reconstruct = fake_application.migrations.reconstruct_conversation
+    source_id = str(uuid4())
+
+    def with_import(conversation_id: UUID) -> dict[str, Any]:
+        history = original_reconstruct(conversation_id)
+        history["messages"] = []
+        history["pending_review"] = None
+        history["runs"] = []
+        history["sources"].append(
+            {
+                "source_id": source_id,
+                "role": "source_sql",
+                "status": "confirmed",
+                "original_name": "persisted_report.sql",
+                "created_at": "2026-09-06T12:30:00+00:00",
+                "metadata": {},
+            }
+        )
+        return history
+
+    fake_application.migrations.reconstruct_conversation = with_import
+    load_conversation = _registered_function(build_app(fake_application), "load_conversation")
+
+    output = load_conversation(str(fake_application._conversation_id))
+    state = output[0]
+
+    assert state["conversation_id"] == str(fake_application._conversation_id)
+    assert state["session_id"] == str(fake_application._session_id)
+    assert state["source_sql_source_id"] == source_id
+    assert state["imported_sql_name"] == "persisted_report.sql"
+    assert state["original_sql"] == "SELECT customer_id FROM legacy_customers"
+    assert fake_application.migrations.started is None
 
 
 def test_conversation_picker_hides_empty_drafts_and_benchmarks_but_keeps_real_work() -> None:
@@ -545,7 +644,15 @@ def test_upload_and_confirm_handlers_are_exposed_and_update_confirmed_inputs(
         [source_sql_id, "report.sql", "source_sql", "", "0.98", "query"],
         [old_schema_id, "old.sql", "old_schema", "", "0.92", "filename"],
     ]
-    updated_state, confirmed, summary, original_sql = confirm_sources(
+    (
+        updated_state,
+        confirmed,
+        summary,
+        original_sql,
+        schema_direction,
+        imported_state,
+        clear_update,
+    ) = confirm_sources(
         corrected_rows,
         state,
     )
@@ -561,7 +668,115 @@ def test_upload_and_confirm_handlers_are_exposed_and_update_confirmed_inputs(
     assert original_sql == "SELECT customer_id FROM legacy_customers"
     assert confirmed == "Confirmed 2 source(s)."
     assert "uploaded-old-db" in summary
+    assert "old" in schema_direction
+    assert "Imported:" in imported_state
+    assert "report.sql" in imported_state
+    assert clear_update["interactive"] is True
     assert fake_application.tool_gateway.calls == [("read_source", {"source_id": source_sql_id})]
+
+
+def test_import_sql_populates_editor_without_starting_a_run_and_preserves_scope(
+    fake_application: Any,
+    tmp_path: Path,
+) -> None:
+    app = build_app(fake_application)
+    import_sql = _registered_function(app, "import_sql")
+    path = tmp_path / "customer_report.sql"
+    path.write_text("SELECT legacy_id FROM legacy_customer", encoding="utf-8")
+    state = _ready_state(fake_application)
+    conversation_id = state["conversation_id"]
+    session_id = state["session_id"]
+
+    updated, sql, indicator, clear_update, summary, direction, upload_update = import_sql(
+        str(path), state
+    )
+
+    assert updated is state
+    assert updated["conversation_id"] == conversation_id
+    assert updated["session_id"] == session_id
+    assert updated["source_sql_source_id"] == fake_application.ingestion.selections[0][
+        "source_id"
+    ]
+    assert updated["imported_sql_name"] == path.name
+    assert sql == "SELECT customer_id FROM legacy_customers"
+    assert fake_application.ingestion.selections[0]["role"] == "source_sql"
+    assert fake_application.migrations.started is None
+    assert "Imported:" in indicator and path.name in indicator
+    assert clear_update["interactive"] is True
+    assert path.name in summary
+    assert "Schema migration direction" in direction
+    assert upload_update["value"] is None
+
+
+def test_imported_sql_can_be_edited_before_migration_and_current_editor_wins(
+    fake_application: Any,
+    tmp_path: Path,
+) -> None:
+    app = build_app(fake_application)
+    import_sql = _registered_function(app, "import_sql")
+    send = _registered_function(app, "send")
+    path = tmp_path / "orders.sql"
+    path.write_text("SELECT customer_id FROM orders", encoding="utf-8")
+    state = _ready_state(fake_application)
+    state = import_sql(str(path), state)[0]
+    edited_sql = "SELECT legacy_id, total_cents FROM legacy_order"
+    fake_application.migrations.start_envelopes = [
+        _envelope({"type": "run_output", "status": "completed", "answer": "Done"})
+    ]
+
+    list(send("", edited_sql, state, []))
+
+    assert fake_application.migrations.started is not None
+    _, _, request = fake_application.migrations.started
+    assert request.request == DEFAULT_MIGRATION_REQUEST
+    assert request.original_sql == edited_sql
+    assert state["original_sql"] == edited_sql
+
+
+def test_clear_imported_sql_keeps_conversation_and_session(
+    fake_application: Any,
+    tmp_path: Path,
+) -> None:
+    app = build_app(fake_application)
+    import_sql = _registered_function(app, "import_sql")
+    clear_sql = _registered_function(app, "clear_imported_sql")
+    path = tmp_path / "orders.sql"
+    path.write_text("SELECT customer_id FROM orders", encoding="utf-8")
+    state = _ready_state(fake_application)
+    state = import_sql(str(path), state)[0]
+    correlation = (state["conversation_id"], state["session_id"])
+
+    updated, sql, indicator, clear_update, summary, upload_update = clear_sql(state)
+
+    assert (updated["conversation_id"], updated["session_id"]) == correlation
+    assert updated["source_sql_source_id"] == ""
+    assert updated["imported_sql_name"] == ""
+    assert updated["original_sql"] == ""
+    assert sql == ""
+    assert "Paste SQL" in indicator
+    assert clear_update["interactive"] is False
+    assert "manual" in summary
+    assert upload_update["value"] is None
+
+
+def test_conversation_message_becomes_editable_optional_context(
+    fake_application: Any,
+) -> None:
+    add_context = _registered_function(build_app(fake_application), "add_chat_context")
+    state = _ready_state(fake_application)
+
+    updated, chat, message, instructions = add_context(
+        "Preserve the finance team's aliases.", state, [], ""
+    )
+
+    assert updated["migration_instructions"] == "Preserve the finance team's aliases."
+    assert chat[0] == {
+        "role": "user",
+        "content": "Preserve the finance team's aliases.",
+    }
+    assert "optional context" in chat[1]["content"]
+    assert message == ""
+    assert instructions == updated["migration_instructions"]
 
 
 def test_custom_input_confirmation_clears_unrepresented_demo_database_side(
@@ -672,7 +887,10 @@ def test_send_endpoint_streams_real_envelopes_into_chat_and_pipeline(
     conversation_id, session_id, request = fake_application.migrations.started
     assert conversation_id == fake_application._conversation_id
     assert session_id == fake_application._session_id
-    assert request.request == "Migrate the customer report"
+    assert request.request.startswith(DEFAULT_MIGRATION_REQUEST)
+    assert request.request.endswith(
+        "Additional migration instructions:\nMigrate the customer report"
+    )
     assert request.original_sql == "SELECT legacy_id FROM legacy_customer"
     assert request.old_schema_source_id == "old-schema"
     assert request.new_schema_source_id == "new-schema"
@@ -686,7 +904,7 @@ def test_send_endpoint_streams_real_envelopes_into_chat_and_pipeline(
     assert final_state["review"] is None
     assert final_state["statuses"]["model"] == "active"
     assert final_chat == [
-        {"role": "user", "content": "Migrate the customer report"},
+        {"role": "user", "content": request.request},
         {"role": "assistant", "content": "Migration completed."},
     ]
     assert "id='model' data-component='model' class='ss-stage active'" in pipeline_html
@@ -782,9 +1000,73 @@ def test_approve_endpoint_resumes_pending_run_in_current_browser_session(
         {"role": "user", "content": "Approve candidate: Validation evidence accepted"},
         {"role": "assistant", "content": "Approved migration."},
     ]
-    assert final[5]["visible"] is False
-    assert final[6]["visible"] is False
+    assert final[5]["visible"] is True
+    assert final[5]["interactive"] is False
+    assert final[6]["visible"] is True
+    assert final[6]["interactive"] is False
     assert final[7]["interactive"] is True
+
+
+def test_reject_and_request_changes_are_distinct_review_actions(
+    fake_application: Any,
+) -> None:
+    review_id = uuid4()
+    state = _ready_state(fake_application)
+    state["run_id"] = str(uuid4())
+    state["review"] = {
+        "type": "human_review_required",
+        "review_id": str(review_id),
+        "candidate_id": str(uuid4()),
+        "payload": {"approvable": True},
+    }
+    fake_application.migrations.resume_envelopes = [
+        _envelope({"type": "run_output", "status": "completed", "answer": "Rejected"})
+    ]
+    app = build_app(fake_application)
+    reject = _registered_function(app, "reject_review")
+
+    rejected = list(reject("This text must not request a revision", state, []))[-1]
+
+    assert fake_application.migrations.resumed["decision"] == "reject"
+    assert fake_application.migrations.resumed["reviewer_feedback"] == ""
+    assert rejected[1][0]["content"] == "Reject candidate."
+
+    second_review_id = uuid4()
+    state = _ready_state(fake_application)
+    state["run_id"] = str(uuid4())
+    state["review"] = {
+        "type": "human_review_required",
+        "review_id": str(second_review_id),
+        "candidate_id": str(uuid4()),
+        "payload": {"approvable": True},
+    }
+    request_changes = _registered_function(app, "request_changes_review")
+
+    changed = list(request_changes("Use the canonical status mapping", state, []))[-1]
+
+    assert fake_application.migrations.resumed["review_id"] == second_review_id
+    assert fake_application.migrations.resumed["decision"] == "reject"
+    assert fake_application.migrations.resumed["reviewer_feedback"] == (
+        "Use the canonical status mapping"
+    )
+    assert changed[1][0]["content"].startswith("Request changes candidate:")
+
+
+def test_request_changes_requires_feedback(fake_application: Any) -> None:
+    state = _ready_state(fake_application)
+    state["run_id"] = str(uuid4())
+    state["review"] = {
+        "type": "human_review_required",
+        "review_id": str(uuid4()),
+        "candidate_id": str(uuid4()),
+        "payload": {"approvable": True},
+    }
+    request_changes = _registered_function(
+        build_app(fake_application), "request_changes_review"
+    )
+
+    with pytest.raises(gr.Error, match="Describe the requested changes"):
+        list(request_changes("  ", state, []))
 
 
 def test_failed_review_resume_keeps_decision_retryable_in_ui(fake_application: Any) -> None:
@@ -851,6 +1133,15 @@ def test_inspectors_show_scoped_checkpoint_memory_and_subagent_records(
         "memories": [{"memory": {"text": "Preserve repeated customer IDs", "memory_type": "rule"}}],
         "proposal": {"candidate_sql": "SELECT customer_id FROM orders"},
         "validation": {"verdict": "pass"},
+        "evidence": [{
+            "chunk": {
+                "document": "customer_migration.md",
+                "heading": "Customer core migration",
+                "text": "Rename <customer> to customers.",
+                "metadata": {"schema_version": "customer_v2"},
+            },
+            "score": 0.875,
+        }],
     }
 
     def get_state(config):
@@ -883,6 +1174,13 @@ def test_inspectors_show_scoped_checkpoint_memory_and_subagent_records(
     assert len(panels) == 6
     assert state["conversation_id"] in panels[0]
     assert "Preserve repeated customer IDs" in panels[1]
+    assert "Used in this run" in panels[1]
+    assert "customer_migration.md" in panels[1]
+    assert "Customer core migration" in panels[1]
+    assert "similarity 0.875" in panels[1]
+    assert "Rename &lt;customer&gt; to customers." in panels[1]
+    assert "customer_v2" in panels[1]
+    assert "customer_migration.md" in panels[0]  # Raw checkpoint remains available.
     assert "call-17" in panels[2]
     assert "Validation Subagent" in panels[4]
     assert "&lt;script&gt;not HTML&lt;/script&gt;" in panels[4]
@@ -896,15 +1194,63 @@ def test_inspectors_do_not_show_a_checkpoint_from_another_run_or_conversation(
 ) -> None:
     state = _ready_state(fake_application)
     state["run_id"] = str(uuid4())
-    values = {**state, mismatch: str(uuid4()), "request": "OTHER RUN PRIVATE CONTEXT"}
+    values = {
+        **state,
+        mismatch: str(uuid4()),
+        "request": "OTHER RUN PRIVATE CONTEXT",
+        "evidence": [{"chunk": {"text": "OTHER RUN PRIVATE PASSAGE"}}],
+    }
     fake_application.graph = SimpleNamespace(
         get_state=lambda config: SimpleNamespace(values=values)
     )
     panels = InspectorPanels(fake_application)
     output = panels.render(state, [])
     assert "OTHER RUN PRIVATE CONTEXT" not in "".join(output)
+    assert "OTHER RUN PRIVATE PASSAGE" not in "".join(output)
     assert "first checkpoint" in output[0]
     assert "Start a migration" in panels.render({}, [])[0]
+
+
+def test_memory_library_is_available_without_a_run_and_refreshes(fake_application: Any) -> None:
+    from schemashift.retrieval import KnowledgeDocument
+
+    documents = [KnowledgeDocument(
+        document_id="customer-doc",
+        document="customer_migration.md",
+        chunk_count=2,
+        metadata=[{"schema_version": "customer_v2", "topic": "<customer-core>"}],
+    )]
+    fake_application.knowledge_store = SimpleNamespace(list_documents=lambda **kwargs: documents)
+    panels = InspectorPanels(fake_application)
+    memory = panels.render({}, [])[1]
+    assert "Knowledge library" in memory
+    assert "customer_migration.md · 2 chunks" in memory
+    assert "customer_v2" in memory
+    assert "&lt;customer-core&gt;" in memory
+    assert "<customer-core>" not in memory
+    assert "Start or select a migration" in memory
+    assert "Learned memory" in memory
+
+    documents.clear()
+    refreshed = panels.render({}, [])[1]
+    assert "No indexed documents yet" in refreshed
+    assert "customer_migration.md" not in refreshed
+
+
+def test_memory_library_failure_does_not_hide_recalled_facts(fake_application: Any) -> None:
+    def fail(**kwargs):
+        raise ConnectionError("Redis <offline>")
+
+    state = {**_ready_state(fake_application), "run_id": str(uuid4())}
+    values = {**state, "memories": [{"memory": {"text": "Preserve customer IDs"}}]}
+    fake_application.graph = SimpleNamespace(
+        get_state=lambda config: SimpleNamespace(values=values)
+    )
+    fake_application.knowledge_store = SimpleNamespace(list_documents=fail)
+    memory = InspectorPanels(fake_application).render(state, [])[1]
+    assert "Knowledge library could not be loaded" in memory
+    assert "Redis &lt;offline&gt;" in memory
+    assert "Preserve customer IDs" in memory
 
 
 def test_trace_keeps_status_transitions_but_not_individual_answer_tokens() -> None:
@@ -942,9 +1288,9 @@ def test_inspectors_refresh_after_final_checkpoint_and_reset_on_new_conversation
     updates = list(send("Migrate this", "SELECT 1", state, []))
     assert "Final checkpoint memory" in updates[-1][12]
     reset = _registered_function(app, "new_conversation")()
-    assert len(reset) == 20
-    assert "Final checkpoint memory" not in "".join(reset[-6:])
-    assert "No subagent has run" in reset[-2]
+    assert len(reset) == 28
+    assert "Final checkpoint memory" not in "".join(reset[14:20])
+    assert "No subagent has run" in reset[18]
 
 
 def test_graph_panel_renders_the_compiled_topology_locally(fake_application: Any) -> None:

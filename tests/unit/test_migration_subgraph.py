@@ -51,6 +51,7 @@ def _alternative(sql: str, confidence: float) -> dict[str, Any]:
 
 def _state(**extra: Any) -> dict[str, Any]:
     return {
+        "request": "Preserve the original output contract.",
         "original_sql": "SELECT legacy_name FROM old_customers",
         "old_schema": {"tables": [{"name": "old_customers"}]},
         "new_schema": {"tables": [{"name": "customers"}]},
@@ -258,8 +259,10 @@ def test_subagent_prompt_excludes_unbriefed_parent_history_and_memory() -> None:
     assert "UNBRIEFED_MEMORY_SENTINEL" not in serialized
     assert "UNNEEDED_IMPACT_SENTINEL" not in serialized
     assert "EXPLICIT_BRIEFING_MEMORY" in serialized
+    assert human_payload["request"] == "Preserve the original output contract."
     assert human_payload["comparison_policy"] == {"ordered": True}
     assert set(human_payload) == {
+        "request",
         "original_sql",
         "old_schema",
         "new_schema",

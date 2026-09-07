@@ -17,7 +17,7 @@ from schemashift.memory.redis_client import (
 from schemashift.model import ModelProvider
 
 from .embeddings import embed_text, embed_texts
-from .schemas import IngestionReport, KnowledgeChunk, KnowledgeSearchResult
+from .schemas import IngestionReport, KnowledgeChunk, KnowledgeDocument, KnowledgeSearchResult
 
 _INDEXED_METADATA = ("schema_version", "old_table", "new_table", "topic", "effective_date")
 
@@ -157,6 +157,40 @@ class KnowledgeStore:
             unchanged=unchanged,
             removed=removed,
         )
+
+    def list_documents(self, *, offset: int = 0, limit: int = 200) -> list[KnowledgeDocument]:
+        """Read a page of indexed documents without embedding or retrieving passages."""
+        from redis.commands.search import reducers
+        from redis.commands.search.aggregation import AggregateRequest
+
+        if offset < 0 or not 1 <= limit <= 1000:
+            raise ValueError("offset must be non-negative and limit must be between 1 and 1000")
+        request = (
+            AggregateRequest("*")
+            .load("@document_id", "@document", "@metadata_json")
+            .group_by(
+                ["@document_id", "@document"],
+                reducers.count().alias("chunk_count"),
+                reducers.tolist("@metadata_json").alias("metadata"),
+            )
+            .sort_by("@document", "@document_id")
+            .limit(offset, limit)
+        )
+        response = self.client.ft(self.index_name).aggregate(request)
+        documents = []
+        for row in response.rows:
+            fields = {_decode(key): value for key, value in zip(row[::2], row[1::2], strict=True)}
+            documents.append(
+                KnowledgeDocument(
+                    document_id=_decode(fields["document_id"]),
+                    document=_decode(fields["document"]),
+                    chunk_count=int(_decode(fields["chunk_count"])),
+                    metadata=[
+                        json.loads(value) for value in sorted(map(_decode, fields["metadata"]))
+                    ],
+                )
+            )
+        return documents
 
     def search(
         self,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextvars import copy_context
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,6 +11,7 @@ import pytest
 
 from schemashift.domain import RunContext
 from schemashift.persistence import ActorType, ReviewStatus, RunStatus
+from schemashift.services.instrumentation import current_run_context, instrument_run
 from schemashift.services.migration import MigrationRequest, MigrationService
 
 
@@ -129,6 +131,29 @@ class FailingResumeGraph:
         yield  # pragma: no cover - make this a generator
 
 
+class ContextCheckingGraph(CompletingGraph):
+    def __init__(self, *, fail: bool = False) -> None:
+        super().__init__()
+        self.fail = fail
+        self.contexts: list[RunContext | None] = []
+        self.closed = False
+
+    def stream(self, *args: Any, **kwargs: Any):
+        context = current_run_context()
+        assert context is not None
+        # Also exercise context-manager cleanup inside the graph generator.
+        with instrument_run(context):
+            try:
+                for item in super().stream(*args, **kwargs):
+                    self.contexts.append(current_run_context())
+                    yield item
+                    if self.fail:
+                        raise RuntimeError("graph execution failed")
+            finally:
+                self.contexts.append(current_run_context())
+                self.closed = True
+
+
 class RecoveringReviewRepository(RecordingRepository):
     def claim_review_decision(self, decision: Any) -> None:
         self.operations.append(("claim_review_decision", decision.decision))
@@ -182,6 +207,71 @@ def test_service_persists_events_before_delivery_and_assistant_once() -> None:
     assert len(tokens) == 1 and tokens[0].persisted is False
     assert [message["role"] for message in repository.messages] == ["user", "assistant"]
     assert repository.statuses[-1] is RunStatus.COMPLETED
+
+
+@pytest.mark.parametrize("resume", [False, True])
+@pytest.mark.parametrize("outcome", ["complete", "close", "error"])
+def test_stream_survives_consumer_context_switches(resume: bool, outcome: str) -> None:
+    repository = RecordingRepository()
+    graph = ContextCheckingGraph(fail=outcome == "error")
+    service = MigrationService(repository, graph)  # type: ignore[arg-type]
+    conversation_id, session_id = uuid4(), uuid4()
+    if resume:
+        run_id, review_id = uuid4(), uuid4()
+        repository.run = FakeRun(conversation_id, uuid4(), run_id, run_id)
+        repository.review = SimpleNamespace(
+            review_id=review_id,
+            conversation_id=conversation_id,
+            run_id=run_id,
+            payload={"approvable": True},
+        )
+        stream = service.resume_run(
+            conversation_id, session_id, review_id=review_id, decision="approve"
+        )
+    else:
+        stream = service.start_run(conversation_id, session_id, _request())
+
+    caller_context = RunContext.create()
+    delivered = []
+    consumer_contexts = []
+    with instrument_run(caller_context):
+        try:
+            while True:
+                # Gradio advances synchronous generators in separate copied contexts.
+                consumer = copy_context()
+                consumer_contexts.append(consumer)
+                try:
+                    envelope = consumer.run(next, stream)
+                except StopIteration:
+                    assert outcome == "complete"
+                    break
+                except RuntimeError as exc:
+                    assert outcome == "error"
+                    assert str(exc) == "graph execution failed"
+                    break
+                delivered.append(envelope)
+                if outcome == "close" and graph.contexts:
+                    break
+        finally:
+            copy_context().run(stream.close)
+        assert all(
+            consumer.run(current_run_context) == caller_context for consumer in consumer_contexts
+        )
+        assert current_run_context() == caller_context
+
+    assert current_run_context() is None
+    assert graph.closed
+    assert repository.run is not None
+    assert all(
+        context == repository.run.as_context(session_id=session_id) for context in graph.contexts
+    )
+    if outcome == "complete":
+        assert delivered[-1].event["type"] == "run_output"
+        assert repository.statuses[-1] is RunStatus.COMPLETED
+        assert RunStatus.FAILED not in repository.statuses
+    elif outcome == "error":
+        assert delivered[-1].event["detail"] == "graph execution failed"
+        assert repository.statuses[-1] is RunStatus.FAILED
 
 
 def test_cross_session_resume_preserves_run_and_uses_current_decision_session() -> None:
