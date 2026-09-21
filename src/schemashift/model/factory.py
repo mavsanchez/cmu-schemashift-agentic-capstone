@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from .base import ModelProvider
+from .litellm import LiteLLMProvider
 from .mock import MockProvider
-from .ollama import OllamaProvider
 
 
 def create_model_provider(settings: Any, *, mock: MockProvider | None = None) -> ModelProvider:
-    provider = str(getattr(settings, "model_provider", getattr(settings, "provider", "ollama")))
-    if provider == "ollama":
-        return OllamaProvider.from_settings(settings)
+    provider = str(getattr(settings, "model_provider", getattr(settings, "provider", "litellm")))
+    if provider == "litellm":
+        return LiteLLMProvider.from_settings(settings)
     if provider == "mock":
         return mock or MockProvider(
             embedding_dimensions=int(getattr(settings, "embedding_dimensions", 1024)),

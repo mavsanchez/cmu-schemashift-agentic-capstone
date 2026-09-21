@@ -6,12 +6,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """SchemaShift settings loaded from ``SCHEMASHIFT_*`` environment variables."""
+    """SchemaShift settings loaded from ``LLM_*`` and ``SCHEMASHIFT_*`` variables."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -19,10 +19,25 @@ class Settings(BaseSettings):
         env_prefix="SCHEMASHIFT_",
         extra="ignore",
         case_sensitive=False,
+        populate_by_name=True,
     )
 
-    model_provider: Literal["ollama", "mock"] = "ollama"
-    chat_model: str = "gpt-oss:20b"
+    model_provider: Literal["litellm", "mock"] = Field(
+        default="litellm",
+        validation_alias="SCHEMASHIFT_RUNTIME_PROVIDER",
+    )
+    llm_base_url: str = Field(
+        default="http://dgx-ramona:4000/v1",
+        validation_alias=AliasChoices("LLM_BASE_URL", "SCHEMASHIFT_LLM_BASE_URL"),
+    )
+    llm_model: str = Field(
+        default="agent",
+        validation_alias=AliasChoices("LLM_MODEL", "SCHEMASHIFT_LLM_MODEL"),
+    )
+    llm_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("LLM_API_KEY", "SCHEMASHIFT_LLM_API_KEY"),
+    )
     embedding_model: str = "bge-m3"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_keep_alive: str = "10m"
@@ -63,6 +78,14 @@ class Settings(BaseSettings):
 
     gradio_host: str = "127.0.0.1"
     gradio_port: int = Field(default=7860, ge=1, le=65_535)
+
+    @field_validator("model_provider", mode="before")
+    @classmethod
+    def force_supported_model_provider(cls, value: object) -> str:
+        """Never let a stale provider setting reactivate a local runtime."""
+
+        normalized = str(value or "litellm").strip().lower()
+        return normalized if normalized in {"litellm", "mock"} else "litellm"
 
     @model_validator(mode="after")
     def validate_knowledge_chunking(self) -> Settings:

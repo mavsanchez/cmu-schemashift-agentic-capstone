@@ -1,7 +1,7 @@
 """Provider-neutral model interfaces used by SchemaShift graphs.
 
 The graph layer depends on this small synchronous protocol instead of creating
-LangChain or Ollama clients directly.  Synchronous methods are intentional:
+provider SDK clients directly.  Synchronous methods are intentional:
 SchemaShift's graph nodes are ordinary local functions and can be dispatched
 by an async caller when needed.
 """

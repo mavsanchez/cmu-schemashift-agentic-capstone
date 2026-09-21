@@ -941,7 +941,10 @@ def build_app(runtime: ApplicationRuntime | None = None) -> gr.Blocks:
     with gr.Blocks(analytics_enabled=False, title="SchemaShift", fill_width=True) as demo:
         demo.load(fn=None, js=LAYOUT_JS)
         browser_state = gr.State({})
-        gr.HTML(hero_html("Local | PostgreSQL + Redis Stack | Human review enabled"), elem_id="workspace_header")
+        gr.HTML(
+            hero_html("DGX chat | Local data + embeddings | Human review enabled"),
+            elem_id="workspace_header",
+        )
         with gr.Row(elem_id="conversation_toolbar"):
             conversation = gr.Dropdown(
                 label="Conversation history",

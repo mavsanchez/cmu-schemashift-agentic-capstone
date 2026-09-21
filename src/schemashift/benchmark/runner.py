@@ -17,7 +17,7 @@ from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from schemashift.config import Settings
 from schemashift.mcp import DatabaseRecord, InMemorySourceRegistry, SourceRecord, ToolContext
 from schemashift.mcp.tools import compare_results, inspect_schema, parse_sql
-from schemashift.model import MockProvider, ModelProvider, OllamaProvider
+from schemashift.model import LiteLLMProvider, MockProvider, ModelProvider
 
 from .cases import BENCHMARK_SEED, BenchmarkCase, build_cases
 from .models import BenchmarkArm, BenchmarkMode, BenchmarkReport, BenchmarkResult
@@ -432,7 +432,7 @@ def _live_application(
     isolation = run_namespace.hex
     configured = settings.model_copy(
         update={
-            "model_provider": "ollama",
+            "model_provider": "litellm",
             "data_root": repository_root / "data",
             "upload_root": repository_root / "data/generated/uploads",
             "artifact_root": repository_root / "data/generated/migrations",
@@ -445,7 +445,7 @@ def _live_application(
             "redis_knowledge_index": f"schemashift-benchmark-knowledge-{isolation}",
         }
     )
-    provider = _CountingProvider(OllamaProvider.from_settings(configured))
+    provider = _CountingProvider(LiteLLMProvider.from_settings(configured))
     runtime = create_application_runtime(
         configured,
         provider=provider,
@@ -501,15 +501,7 @@ class BenchmarkRunner:
             )
         else:
             # The prompt-only baseline deliberately gets a single attempt.
-            provider = OllamaProvider(
-                chat_model=self.settings.chat_model,
-                embedding_model=self.settings.embedding_model,
-                base_url=self.settings.ollama_base_url,
-                temperature=self.settings.temperature,
-                keep_alive=self.settings.ollama_keep_alive,
-                max_attempts=1,
-                embedding_dimensions=self.settings.embedding_dimensions,
-            )
+            provider = LiteLLMProvider.from_settings(self.settings, max_attempts=1)
         return _CountingProvider(provider)
 
     def _run_baseline(
@@ -959,11 +951,11 @@ class BenchmarkRunner:
             mode=selected_mode.value,
             started_at=started_at,
             completed_at=completed_at,
-            model=self.settings.chat_model,
+            model=self.settings.llm_model,
             embedding_model=self.settings.embedding_model,
             temperature=self.settings.temperature,
             settings={
-                "provider": "ollama" if selected_mode is BenchmarkMode.LIVE else "mock",
+                "provider": "litellm" if selected_mode is BenchmarkMode.LIVE else "mock",
                 "workflow_runtime": (
                     "application-service/postgresql/redis/langgraph/mcp-v2"
                     if selected_mode is BenchmarkMode.LIVE

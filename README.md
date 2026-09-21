@@ -13,6 +13,8 @@ and Validation subgraphs. Its six runtime-discovered MCP v2 tools inspect regist
 schemas, parse SQL, execute bounded read-only DuckDB queries, compare results, and read
 confirmed local sources. PostgreSQL stores durable conversations and workflow history;
 Redis Stack stores LangGraph checkpoints, semantic memory, and migration-document vectors.
+All chat and structured reasoning use the OpenAI-compatible LiteLLM gateway on DGX
+Ramona. Local Ollama is restricted to `bge-m3` embeddings and is never a chat fallback.
 
 ```mermaid
 flowchart TD
@@ -22,11 +24,16 @@ flowchart TD
     MCP["Restricted MCP tools<br/>Read-only DuckDB"]
     Migration["Migration<br/>Subgraph"]
     Validation["Validation<br/>Subgraph"]
+    LiteLLM["LiteLLM on DGX Ramona<br/>agent alias"]
+    vLLM["vLLM<br/>Nemotron"]
+    Embeddings["Local Ollama<br/>bge-m3 embeddings only"]
     Review["Guardrails<br/>Human review when needed"]
     Postgres[("PostgreSQL<br/>History & artifacts")]
 
     UI --> Parent
-    Parent --> Redis & MCP & Migration & Validation
+    Parent --> Redis & MCP & Migration & Validation & LiteLLM
+    LiteLLM --> vLLM
+    Redis --> Embeddings
     Redis & MCP & Migration & Validation --> Review
     Review --> Postgres
 
@@ -35,7 +42,7 @@ flowchart TD
     classDef storage fill:#e7eff7,stroke:#477db3,color:#24496e
     classDef review fill:#f5ead2,stroke:#b68a3a,color:#674b1d
     class UI,Parent primary
-    class MCP,Migration,Validation component
+    class MCP,Migration,Validation,LiteLLM,vLLM,Embeddings component
     class Redis,Postgres storage
     class Review review
 ```
@@ -56,7 +63,9 @@ schema-migration motifs across projection, filter, join, aggregate, and CTE/subq
 - Python 3.11 (the project intentionally constrains Python to `>=3.11,<3.12`)
 - [uv](https://docs.astral.sh/uv/)
 - Docker with Docker Compose
-- [Ollama](https://ollama.com/)
+- Network access to `http://dgx-ramona:4000/v1`
+- A LiteLLM API key
+- [Ollama](https://ollama.com/) with local `bge-m3` for embeddings only
 
 ### Install the locked environment
 
@@ -67,15 +76,63 @@ Copy-Item .env.example .env
 uv sync --locked
 ```
 
-The defaults use local Ollama only. Pull both locked model names:
+Set the LiteLLM API key in `.env`; never commit the real value:
 
-```powershell
-ollama pull gpt-oss:20b
-ollama pull bge-m3
+```dotenv
+LLM_BASE_URL=http://dgx-ramona:4000/v1
+LLM_MODEL=agent
+LLM_API_KEY=<your-LiteLLM-api-key>
+SCHEMASHIFT_EMBEDDING_MODEL=bge-m3
+SCHEMASHIFT_OLLAMA_BASE_URL=http://127.0.0.1:11434
 ```
 
 For deterministic tests without model calls, set
-`SCHEMASHIFT_MODEL_PROVIDER=mock`. There is no automatic cloud fallback.
+`SCHEMASHIFT_RUNTIME_PROVIDER=mock`. There is no automatic local chat or cloud-model
+fallback. The remote LiteLLM deployment must expose `agent` for chat. Its `/v1/embeddings`
+route does not expose `bge-m3`, so SchemaShift sends embeddings only to the configured
+local Ollama endpoint. The local model must return 1,024 dimensions to match the Redis
+indexes.
+
+Pull the embedding model locally; no local chat model is required:
+
+```powershell
+ollama pull bge-m3
+```
+
+The live request path is:
+
+`SchemaShift → LiteLLM on DGX Ramona → agent → vLLM → Nemotron`
+
+### DGX vLLM chat template
+
+Chat templates belong to the vLLM process behind LiteLLM, not to the SchemaShift client.
+The requested [Qwen Sharp template](https://huggingface.co/peculiar-ragdoll/Qwen-Sharp-Chat-Templates/tree/main)
+is explicitly designed for Qwen 3.5, 3.6, and 3.8 tokenizers. Do **not** apply it to a
+Nemotron, Llama, or other model that uses a different tokenizer contract; NVIDIA Nemotron
+models ship their own model-specific templates. First inspect the LiteLLM `agent` mapping.
+
+Only when `agent` resolves to a compatible Qwen model, install the pinned Sharp v22.4.1
+template on DGX Ramona and pass it to vLLM:
+
+```bash
+hf download peculiar-ragdoll/Qwen-Sharp-Chat-Templates chat_template.jinja \
+  --revision 76a3c60197b3ca387ba9a6aad48df5240ae07367 \
+  --local-dir /opt/qwen-sharp
+
+vllm serve Qwen/Qwen3.8-27B \
+  --served-model-name agent \
+  --chat-template /opt/qwen-sharp/chat_template.jinja \
+  --reasoning-parser qwen3 \
+  --enable-auto-tool-choice \
+  --tool-call-parser qwen3_xml
+```
+
+Keep SchemaShift's prompts unchanged. The Sharp template appends its own response-style
+guidance after the supplied system prompt; applying it at vLLM therefore preserves the
+application's agent briefings and guardrails. Restart the vLLM service, then verify the
+rendered template and a structured-output request before repointing the LiteLLM `agent`
+alias. For a true Nemotron backend, keep the model's native chat template and reasoning
+parser instead of the Qwen-specific command above.
 
 ### Start durable local services
 
@@ -119,7 +176,7 @@ $env:SCHEMASHIFT_RUN_INTEGRATION="1"
 uv run pytest tests/integration
 ```
 
-Run one live Ollama case before the complete comparison:
+Run one live split-runtime case before the complete comparison:
 
 ```powershell
 uv run python scripts/run_benchmark.py --mode live --arm both --case-id m01_projection --no-update-latest
@@ -132,6 +189,10 @@ and the full workflow. Only this exact 100-arm live run may update
 ```powershell
 uv run python scripts/run_benchmark.py --mode live --arm both
 ```
+
+The checked-in `benchmark/results/latest.json` predates this DGX migration and is retained
+unchanged as historical evidence, so its recorded failure/provider fields intentionally
+contain Ollama labels. A completed 100-arm live DGX run replaces that artifact honestly.
 
 ### Start the application
 
@@ -176,7 +237,7 @@ into this editable optional context for the next migration.
 5 human-review candidates, and a 3-run memory demonstration. Files 11–15 deliberately
 contain invalid source SQL or references; the others contain executable read-only queries.
 Complete the synthetic-data and knowledge-index initialization above first. Use the
-local Ollama provider for interactive demos; the mock provider alone does not generate
+DGX LiteLLM provider for interactive demos; the mock provider alone does not generate
 migrations for arbitrary uploaded SQL.
 
 #### Run one example

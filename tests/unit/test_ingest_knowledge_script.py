@@ -35,11 +35,6 @@ def test_ingest_script_probes_before_index_and_uses_central_chunk_settings(
             events.append(("probe", text))
             return [0.0] * 1024
 
-    class ProviderFactory:
-        @staticmethod
-        def from_settings(_settings: Any) -> Provider:
-            return Provider()
-
     class Store:
         def __init__(self, *_args: Any, **_kwargs: Any) -> None:
             pass
@@ -65,7 +60,7 @@ def test_ingest_script_probes_before_index_and_uses_central_chunk_settings(
 
     monkeypatch.setattr(ingest_knowledge, "_project_settings", lambda: settings)
     monkeypatch.setattr(ingest_knowledge, "create_redis_client", lambda _url: Client())
-    monkeypatch.setattr(ingest_knowledge, "OllamaProvider", ProviderFactory)
+    monkeypatch.setattr(ingest_knowledge, "create_model_provider", lambda _settings: Provider())
     monkeypatch.setattr(ingest_knowledge, "KnowledgeStore", Store)
     monkeypatch.setattr(ingest_knowledge, "KnowledgeIngestor", Ingestor)
 
@@ -96,14 +91,9 @@ def test_ingest_script_refuses_wrong_embedding_dimension_before_index(
             events.append("probe")
             return [0.0] * 3
 
-    class ProviderFactory:
-        @staticmethod
-        def from_settings(_settings: Any) -> Provider:
-            return Provider()
-
     monkeypatch.setattr(ingest_knowledge, "_project_settings", lambda: settings)
     monkeypatch.setattr(ingest_knowledge, "create_redis_client", lambda _url: Client())
-    monkeypatch.setattr(ingest_knowledge, "OllamaProvider", ProviderFactory)
+    monkeypatch.setattr(ingest_knowledge, "create_model_provider", lambda _settings: Provider())
 
     try:
         ingest_knowledge.main(["--knowledge-dir", str(tmp_path)])

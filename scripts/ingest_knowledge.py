@@ -11,7 +11,7 @@ from schemashift.memory import (
     DEFAULT_KNOWLEDGE_PREFIX,
     create_redis_client,
 )
-from schemashift.model import OllamaProvider
+from schemashift.model import create_model_provider
 from schemashift.retrieval import KnowledgeIngestor, KnowledgeStore
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     redis_url = args.redis_url or settings.redis_url
     client = create_redis_client(redis_url)
     try:
-        model = OllamaProvider.from_settings(settings)
+        model = create_model_provider(settings)
         probe = model.embed("SchemaShift knowledge-index dimension probe")
         expected_dimensions = int(getattr(settings, "embedding_dimensions", 1024))
         if len(probe) != expected_dimensions:
